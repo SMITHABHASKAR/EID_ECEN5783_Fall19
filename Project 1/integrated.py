@@ -91,7 +91,7 @@ class Ui_Form(QtWidgets.QMainWindow):
         #self.avgHum.setProperty("intValue", 27)
         self.avgHum.setObjectName("avgHum")
         self.currHum = QtWidgets.QLCDNumber(self.widget_2)
-        self.currHum.setGeometry(QtCore.QRect(23, 30, 91, 51))
+        self.currHum.setGeometry(QtCore.QRect(20, 30, 91, 51))
         font = QtGui.QFont()
         font.setPointSize(22)
         self.currHum.setFont(font)
@@ -103,6 +103,8 @@ class Ui_Form(QtWidgets.QMainWindow):
         self.label_4 = QtWidgets.QLabel(self.widget_2)
         self.label_4.setGeometry(QtCore.QRect(20, 90, 31, 22))
         self.label_4.setObjectName("label_4")
+        self.label_5 = QtWidgets.QLabel(Form)
+        self.label_5.setGeometry(QtCore.QRect(632, 272, 20, 31))
         
         self.autoRefresh = QtWidgets.QProgressBar(Form)
         self.autoRefresh.setGeometry(QtCore.QRect(310, 320, 101, 16))
@@ -115,7 +117,7 @@ class Ui_Form(QtWidgets.QMainWindow):
         self.showHideGraphs.setObjectName("showHideGraphs")
 
         self.switchFC = QtWidgets.QPushButton(Form)
-        self.switchFC.setGeometry(QtCore.QRect(250, 230, 51, 31))
+        self.switchFC.setGeometry(QtCore.QRect(222, 272, 51, 31))
         self.switchFC.setObjectName("switchFC")
 
         self.retranslateUi(Form)
@@ -139,5 +141,6 @@ class Ui_Form(QtWidgets.QMainWindow):
         self.label_2.setText(_translate("Form", "Humidity"))
         self.label_3.setText(_translate("Form", "avg"))
         self.label_4.setText(_translate("Form", "avg"))
+        self.label_5.setText(_translate("Form", "%"))
 
 

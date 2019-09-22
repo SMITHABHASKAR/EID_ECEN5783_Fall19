@@ -26,16 +26,6 @@
     <string>refresh</string>
    </property>
   </widget>
-  <widget class="QGraphicsView" name="graphicsView">
-   <property name="geometry">
-    <rect>
-     <x>170</x>
-     <y>30</y>
-     <width>256</width>
-     <height>192</height>
-    </rect>
-   </property>
-  </widget>
   <widget class="rangeslider_vert" name="tempSet">
    <property name="geometry">
     <rect>
@@ -269,16 +259,6 @@
     <number>24</number>
    </property>
   </widget>
-  <widget class="QGraphicsView" name="graphicsView_2">
-   <property name="geometry">
-    <rect>
-     <x>450</x>
-     <y>30</y>
-     <width>256</width>
-     <height>192</height>
-    </rect>
-   </property>
-  </widget>
  </widget>
  <customwidgets>
   <customwidget>
@@ -289,22 +269,6 @@
  </customwidgets>
  <resources/>
  <connections>
-  <connection>
-   <sender>refresh</sender>
-   <signal>clicked()</signal>
-   <receiver>graphicsView</receiver>
-   <slot>repaint()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>279</x>
-     <y>335</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>190</x>
-     <y>191</y>
-    </hint>
-   </hints>
-  </connection>
   <connection>
    <sender>refresh</sender>
    <signal>clicked()</signal>

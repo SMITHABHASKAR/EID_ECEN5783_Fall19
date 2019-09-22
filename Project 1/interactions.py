@@ -2,13 +2,18 @@
 import matplotlib.pyplot as plt
 import random
 import sys
-# import Adafruit_DHT
+import Adafruit_DHT
 import numpy as np
 import time
 import datetime
+import MySQLdb
+
 
 from PyQt5 import QtCore, QtGui, QtWidgets #works for PyQt5
 from integrated import Ui_Form #note the capitalization
+
+conn = MySQLdb.connect(host= "localhost",user= "EID",passwd="EID",db="TEMP")
+c=conn.cursor()
 
 class Form(Ui_Form):
     def __init__ (self, parent = None):
@@ -25,7 +30,9 @@ class Form(Ui_Form):
         self.maxT = 0
         self.minT = 0
         self.mode = "F" # choose F or C
+        self.ui.switchFC.setText(self.mode)
         self.graph = False # choose true (show graphs) or false (hide graphs)
+        self.ui.showHideGraphs.setText("Show Graphs")
         self.hum = 0
         self.maxH = 0
         self.minH = 0
@@ -43,7 +50,7 @@ class Form(Ui_Form):
 
         self.scaleTemp()
 
-        self.ui.humSet.setRange(30, 60)
+        self.ui.humSet.setRange(15, 30)
         
         self.updateReadings()
 
@@ -61,19 +68,28 @@ class Form(Ui_Form):
 
     def sensor(self):
 #        # uncomment if running with actual sensor
-#        sensor = Adafruit_DHT.DHT22
-#        pin = 4     # pin 7 on rpi 3 is GPIO 4
+        sensor = Adafruit_DHT.DHT22
+        pin = 4     # pin 7 on rpi 3 is GPIO 4
         
-#        humidity, temperature = Adafruit_DHT.read_retry(sensor, pin)
+        humidity, temperature = Adafruit_DHT.read_retry(sensor, pin)
+        t_f=round((temperature*9)/5+32);
+        unix = int(time.time())
+        date = str(datetime.datetime.fromtimestamp(unix).strftime('%Y-%m-%d %H:%M:%S'))
+
+        c.execute("INSERT INTO SENSOR (DATEandTIME, TEMPERATUREinC,TEMPERATUREinF,HUMIDITY) VALUES (%s, %s, %s, %s)",(date, temperature, t_f, humidity))
+
+        conn.commit()
+
         
         # uncomment if testing without sensor
-        humidity = 20
-        temperature = 30
+        # humidity = 20
+        # temperature = 30
 
-        # error case
-#         if humidity is None or temperature is None:
-#             self.label_7.setText('Sensor is not working!!!')
-#         return
+        #error case
+        if humidity is None or temperature is None:
+            self.label_7.setText('Sensor is not working!!!')
+        return
+    
         self.temp_f = (temperature*9)/5 + 32.0  
         self.temp_c = temperature
         self.hum = humidity
@@ -83,20 +99,6 @@ class Form(Ui_Form):
         # self.currHum.setText('{0:0.1f} %  '.format(self.hum))
 
     def plot_graph(self):
-        
-        self.temp_list.pop(0)
-        self.hum_list.pop(0)    
-        if self.mode == "F":
-            self.temp_list.append(self.temp_f)
-        elif self.mode == "C":
-            self.temp_list.append(self.temp_c)
-        else: return
-        self.hum_list.append(self.hum)
-        
-        # average value calculation
-        self.avgT = sum(self.temp_list)/10
-        self.avgH = sum(self.hum_list)/10
-        
         plt.clf()
         
         plt.subplot(311)
@@ -108,7 +110,7 @@ class Form(Ui_Form):
             plt.title('Live Temperature Graph | Average = {0:0.1f} deg C'.format(self.avgT))
         elif self.mode == "F":
             plt.ylabel('Temperature (Fahrenheit)')
-            plt.title('Live Temperature Graph | Average = {0:0.1f} deg F'.format(self.avgT))
+            plt.title('Live Temperature Graph | Average = {0:0.1f} deg F'.format((self.avgT*9)/5+32))
         plt.grid(True)
         
         plt.subplot(313)
@@ -130,9 +132,11 @@ class Form(Ui_Form):
         if self.graph == False:
             self.graph = True
             self.ui.showHideGraphs.setText("Hide Graphs")
+            self.plot_graph()
         elif self.graph == True:
             self.graph = False
             self.ui.showHideGraphs.setText("Show Graphs")
+            
 
     def toggleFC(self):
         if self.mode == "C":
@@ -145,6 +149,20 @@ class Form(Ui_Form):
 
     def updateReadings(self):
         self.sensor()
+
+        self.temp_list.pop(0)
+        self.hum_list.pop(0)    
+        if self.mode == "F":
+            self.temp_list.append(self.temp_f)
+        elif self.mode == "C":
+            self.temp_list.append(self.temp_c)
+        else: return
+        self.hum_list.append(self.hum)
+        
+        # average value calculation
+        self.avgT = sum(self.temp_list)/10
+        self.avgH = sum(self.hum_list)/10
+        
         self.updateTemp()
         self.updateHum()
 
