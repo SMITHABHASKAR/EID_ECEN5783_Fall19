@@ -2,7 +2,7 @@
 import matplotlib.pyplot as plt
 import random
 import sys
-import Adafruit_DHT
+# import Adafruit_DHT
 import numpy as np
 import time
 import datetime
@@ -17,7 +17,7 @@ class Form(Ui_Form):
         self.ui.setupUi(self)
 
         # initialize values to track
-        self.count = 0 #Start value of progress bar
+        self.count = 0 # value of progress bar
         self.temp_f = 0
         self.temp_c = 0
         self.avgT = 0
@@ -25,6 +25,7 @@ class Form(Ui_Form):
         self.maxT = 0
         self.minT = 0
         self.mode = "F" # choose F or C
+        self.graph = False # choose true (show graphs) or false (hide graphs)
         self.hum = 0
         self.maxH = 0
         self.minH = 0
@@ -39,6 +40,14 @@ class Form(Ui_Form):
         self.ui.autoRefresh.setValue(self.count)
         self.timer = QtCore.QBasicTimer()
         self.timerEvent(64) # start timer
+
+        self.scaleTemp()
+
+        self.ui.humSet.setRange(30, 60)
+        
+        self.updateReadings()
+
+    def scaleTemp(self):
         if self.mode == "F":
             self.ui.tempSet.setMin(0)
             self.ui.tempSet.setMax(120)
@@ -50,18 +59,16 @@ class Form(Ui_Form):
         else:
             return
 
-        self.ui.humSet.setRange(15, 35)
-        
-        self.updateReadings()
-
     def sensor(self):
-        sensor = Adafruit_DHT.DHT22
-        pin = 4     # pin 7 on rpi 3 is GPIO 4
+#        # uncomment if running with actual sensor
+#        sensor = Adafruit_DHT.DHT22
+#        pin = 4     # pin 7 on rpi 3 is GPIO 4
         
-        humidity, temperature = Adafruit_DHT.read_retry(sensor, pin)
+#        humidity, temperature = Adafruit_DHT.read_retry(sensor, pin)
         
-        #humidity = 20
-        #temperature = 30
+        # uncomment if testing without sensor
+        humidity = 20
+        temperature = 30
 
         # error case
 #         if humidity is None or temperature is None:
@@ -95,15 +102,20 @@ class Form(Ui_Form):
         plt.subplot(311)
         plt.plot(self.idx_list, self.temp_list)
         plt.xlabel('Latest 10 values')
-        plt.ylabel('Temperature (Celsius)')
-        plt.title('Live Temperature Graph | Average = {0:0.1f} deg Celcius'.format(tavg))
+        
+        if self.mode == "C":
+            plt.ylabel('Temperature (Celsius)')
+            plt.title('Live Temperature Graph | Average = {0:0.1f} deg C'.format(self.avgT))
+        elif self.mode == "F":
+            plt.ylabel('Temperature (Fahrenheit)')
+            plt.title('Live Temperature Graph | Average = {0:0.1f} deg F'.format(self.avgT))
         plt.grid(True)
         
         plt.subplot(313)
         plt.plot(self.idx_list, self.hum_list)
         plt.xlabel('Latest 10 values')
         plt.ylabel('Humidity (%)')
-        plt.title('Live Humidity Graph | Average = {0:0.1f} %'.format(havg))
+        plt.title('Live Humidity Graph | Average = {0:0.1f} %'.format(self.avgH))
         plt.grid(True)
         plt.draw()          
         plt.pause(0.001)
@@ -114,6 +126,23 @@ class Form(Ui_Form):
         self.updateReadings()
         self.timerEvent(64) #this needs an argument to work but I'm not sure what is is yet so I just put in some random number
 
+    def toggleGraphs(self):
+        if self.graph == False:
+            self.graph = True
+            self.ui.showHideGraphs.setText("Hide Graphs")
+        elif self.graph == True:
+            self.graph = False
+            self.ui.showHideGraphs.setText("Show Graphs")
+
+    def toggleFC(self):
+        if self.mode == "C":
+            self.mode = "F"
+            self.ui.switchFC.setText("F")
+        elif self.mode == "F":
+            self.mode = "C"
+            self.ui.switchFC.setText("C")
+        self.scaleTemp()
+
     def updateReadings(self):
         self.sensor()
         self.updateTemp()
@@ -121,8 +150,10 @@ class Form(Ui_Form):
 
     def updateTemp(self):
         # update temperature limits
-        self.minT = self.ui.tempSet.end()
-        self.maxT = self.ui.tempSet.start()
+        self.maxT = int(self.ui.tempSet.end())
+        self.minT = int(self.ui.tempSet.start())
+        
+        print("acceptable range: " + str(self.minT) + "-" + str(self.maxT))
         
         # get latest reading and average
         if self.mode == "F":
@@ -133,35 +164,64 @@ class Form(Ui_Form):
             return
         self.ui.avgTemp.setProperty("intValue", self.avgT)
 
+        _currTemp = self.ui.currTemp.intValue()
+        _avgTemp = self.ui.avgTemp.intValue()
+
         # check if current temp ok
-        if self.ui.currTemp.intValue() > self.maxT or self.ui.currTemp.intValue() < self.minT:
+        if _currTemp > self.maxT or _currTemp < self.minT:
+            print("NO NO NO")
             self.ui.currTemp.setProperty("alert", True)
         else:
+            print("just right")
             self.ui.currTemp.setProperty("alert", False)
 
         # check if avg temp ok
-        if self.ui.avgTemp.intValue() > self.ui.tempSet.end() or self.ui.avgTemp.intValue() < self.ui.tempSet.start():
+        if _avgTemp > self.maxT or _avgTemp < self.minT:
             self.ui.avgTemp.setProperty("alert", True)
         else:
             self.ui.avgTemp.setProperty("alert", False)
+        
+        self.ui.currTemp.setStyle(self.ui.currTemp.style())
+        self.ui.avgTemp.setStyle(self.ui.avgTemp.style())
 
     def updateHum(self):
+        #update humidity bounds
+        self.minH = self.ui.humSet.start()
+        self.maxH = self.ui.humSet.end()
         self.ui.currHum.setProperty("intValue", self.hum)
+        self.ui.avgHum.setProperty("intValue", self.avgH)
 
         #check if current humidity ok
         if self.ui.currHum.intValue() < self.ui.humSet.start():
             self.ui.currHum.setProperty("alert", True)
         else:
             self.ui.currHum.setProperty("alert", False)
+            
+        #check if average humidity ok
+        if self.ui.avgHum.intValue() < self.ui.humSet.start():
+            self.ui.avgHum.setProperty("alert", True)
+        else:
+            self.ui.avgHum.setProperty("alert", False)
+            
+        self.ui.currHum.setStyle(self.ui.currTemp.style())
+        self.ui.avgHum.setStyle(self.ui.avgTemp.style())
 
     def timerEvent(self, e):
         self.ui.autoRefresh.setValue(self.count)
         if self.count >=15:
             self.count = 0
             self.updateReadings()
+            if self.graph:
+                self.plot_graph()
         else:
             if self.timer.isActive():
                 pass
             else:
                 self.timer.start(1000,self) #10 milliseconds
         self.count+=1
+        
+    # temperature converting functions
+    def FtoC(temp_f):
+        return (temp_f - 32)*5/9
+    def CtoF(temp_c):
+        return temp_c*9/5 + 32
