@@ -72,6 +72,11 @@ class Form(Ui_Form):
         pin = 4     # pin 7 on rpi 3 is GPIO 4
         
         humidity, temperature = Adafruit_DHT.read_retry(sensor, pin)
+        
+        self.temp_f = (temperature*9)/5 + 32.0  
+        self.temp_c = temperature
+        self.hum = humidity
+        
         t_f=round((temperature*9)/5+32);
         unix = int(time.time())
         date = str(datetime.datetime.fromtimestamp(unix).strftime('%Y-%m-%d %H:%M:%S'))
@@ -79,6 +84,8 @@ class Form(Ui_Form):
         c.execute("INSERT INTO SENSOR (DATEandTIME, TEMPERATUREinC,TEMPERATUREinF,HUMIDITY) VALUES (%s, %s, %s, %s)",(date, temperature, t_f, humidity))
 
         conn.commit()
+        c.close
+        conn.close()
 
         
         # uncomment if testing without sensor
@@ -89,10 +96,7 @@ class Form(Ui_Form):
         if humidity is None or temperature is None:
             self.label_7.setText('Sensor is not working!!!')
         return
-    
-        self.temp_f = (temperature*9)/5 + 32.0  
-        self.temp_c = temperature
-        self.hum = humidity
+  
 
         # self.currTemp.setText('{0:0.1f} * C '.format(self.temp_c))
         # self.currTempinF.setText('{0:0.1f} * F '.format(self.temp_f))

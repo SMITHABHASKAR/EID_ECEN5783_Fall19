@@ -17,15 +17,15 @@ class Ui_Form(QtWidgets.QMainWindow):
         self.refresh.setGeometry(QtCore.QRect(310, 280, 101, 31))
         self.refresh.setObjectName("refresh")
 
-        # temperature graph
-        self.graphicsView = QtWidgets.QGraphicsView(Form)
-        self.graphicsView.setGeometry(QtCore.QRect(100, 30, 256, 192))
-        self.graphicsView.setObjectName("graphicsView")
-
-        # humidity graph
-        self.graphicsView_2 = QtWidgets.QGraphicsView(Form)
-        self.graphicsView_2.setGeometry(QtCore.QRect(380, 30, 256, 192))
-        self.graphicsView_2.setObjectName("graphicsView_2")
+#        # temperature graph
+#        self.graphicsView = QtWidgets.QGraphicsView(Form)
+#        self.graphicsView.setGeometry(QtCore.QRect(100, 30, 256, 192))
+#        self.graphicsView.setObjectName("graphicsView")
+#
+#        # humidity graph
+#        self.graphicsView_2 = QtWidgets.QGraphicsView(Form)
+#        self.graphicsView_2.setGeometry(QtCore.QRect(380, 30, 256, 192))
+#        self.graphicsView_2.setObjectName("graphicsView_2")
 
         # temperature slider
         self.tempSet = QRangeSlider(Form)
