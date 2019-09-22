@@ -94,8 +94,9 @@ class Form(Ui_Form):
 
         #error case
         if humidity is None or temperature is None:
-            self.label_7.setText('Sensor is not working!!!')
-        return
+            self.ui.status.setText('status: Sensor is not working!!!')
+        else:
+            self.ui.status.setText("status: Temperature - " + str(int(self.temp_f)) + "deg F / " + str(int(self.temp_c)) + "deg C || Humidity: " + str(int(self.hum)) + "% || Date/Time: " + date)
   
 
         # self.currTemp.setText('{0:0.1f} * C '.format(self.temp_c))

@@ -17,6 +17,10 @@ class Ui_Form(QtWidgets.QMainWindow):
         self.refresh.setGeometry(QtCore.QRect(310, 280, 101, 31))
         self.refresh.setObjectName("refresh")
 
+        self.status = QtWidgets.QLabel(Form)
+        self.status.setGeometry(QtCore.QRect(25, 25, 650, 31))
+        self.status.setObjectName("statusMessage")
+                                
 #        # temperature graph
 #        self.graphicsView = QtWidgets.QGraphicsView(Form)
 #        self.graphicsView.setGeometry(QtCore.QRect(100, 30, 256, 192))
@@ -137,6 +141,7 @@ class Ui_Form(QtWidgets.QMainWindow):
         _translate = QtCore.QCoreApplication.translate
         Form.setWindowTitle(_translate("Form", "Best Thermostat"))
         self.refresh.setText(_translate("Form", "refresh"))
+        self.status.setText(_translate("Form", "status: "))
         self.label.setText(_translate("Form", "Temperature"))
         self.label_2.setText(_translate("Form", "Humidity"))
         self.label_3.setText(_translate("Form", "avg"))
