@@ -14,8 +14,8 @@ from matplotlib.figure import Figure
 import matplotlib
 matplotlib.use('QT5Agg')
 
-# custom classes modified from https://stackoverflow.com/questions/43947318/plotting-matplotlib-figure-inside-qwidget-using-qt-designer-form-and-pyqt5
-# to plot the graphs in the same window as rest of UI 
+# custom classes modified from https://stackoverflow.com/questions/43947318/plotting-matplotlib-figure-inside-qwidget-using-qt-designer-form-and-pyqt5 to plot the graphs in the same window as rest of UI 
+# FigureCanvas wrapper
 class Graph(Canvas):
     def __init__(self, parent=None):
         self.figure = Figure()
@@ -24,6 +24,7 @@ class Graph(Canvas):
         Canvas.setSizePolicy(self, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
         Canvas.updateGeometry(self)
 
+# Widget to hold FigureCanvas and layout other components
 class MPLWidget(QtWidgets.QWidget):
     def __init__(self, parent=None):
         QtWidgets.QWidget.__init__(self, parent)
@@ -47,6 +48,7 @@ class MPLWidget(QtWidgets.QWidget):
         self.canvas.ax.set_axis_off()
         self.canvas.draw()
 
+# main UI form with widgets
 class Ui_Form(QtWidgets.QMainWindow):
     def setupUi(self, Form):
         Form.setObjectName("Form")
@@ -194,5 +196,3 @@ class Ui_Form(QtWidgets.QMainWindow):
         self.label_3.setText(_translate("Form", "avg"))
         self.label_4.setText(_translate("Form", "avg"))
         self.label_5.setText(_translate("Form", "%"))
-
-
