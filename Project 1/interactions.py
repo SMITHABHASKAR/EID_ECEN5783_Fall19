@@ -38,6 +38,7 @@ class Form(Ui_Form):
         self.minH = 0
         #indexes for plotting
         self.temp_list = [0] * 10
+        self.tempf_list = [0] * 10
         self.hum_list = [0] * 10
         self.idx_list = [0] * 10
         
@@ -72,11 +73,11 @@ class Form(Ui_Form):
         pin = 4     # pin 7 on rpi 3 is GPIO 4
         
         humidity, temperature = Adafruit_DHT.read_retry(sensor, pin)
-        
-        self.temp_f = (temperature*9)/5 + 32.0  
+        t_f=round((temperature*9)/5+32);
+        #self.temp_f = (temperature*9)/5 + 32.0  
         self.temp_c = temperature
         self.hum = humidity
-        
+        self.temp_f = (temperature*9)/5 + 32.0 
         t_f=round((temperature*9)/5+32);
         unix = int(time.time())
         date = str(datetime.datetime.fromtimestamp(unix).strftime('%Y-%m-%d %H:%M:%S'))
@@ -84,8 +85,8 @@ class Form(Ui_Form):
         c.execute("INSERT INTO SENSOR (DATEandTIME, TEMPERATUREinC,TEMPERATUREinF,HUMIDITY) VALUES (%s, %s, %s, %s)",(date, temperature, t_f, humidity))
 
         conn.commit()
-        c.close
-        conn.close()
+#        c.close
+#        conn.close()
 
         
         # uncomment if testing without sensor
@@ -102,27 +103,39 @@ class Form(Ui_Form):
         # self.currTemp.setText('{0:0.1f} * C '.format(self.temp_c))
         # self.currTempinF.setText('{0:0.1f} * F '.format(self.temp_f))
         # self.currHum.setText('{0:0.1f} %  '.format(self.hum))
-
     def plot_graph(self):
-        plt.clf()
         
+        plt.clf()
         plt.subplot(311)
-        plt.plot(self.idx_list, self.temp_list)
-        plt.xlabel('Latest 10 values')
+        
+        
         
         if self.mode == "C":
+            #plt.subplot(312)
+            #plt.plot(self.idx_list, self.temp_list)
+            plt.plot(self.idx_list, self.temp_list,'r')
+            plt.xlabel('Latest 10 values')
             plt.ylabel('Temperature (Celsius)')
-            plt.title('Live Temperature Graph | Average = {0:0.1f} deg C'.format(self.avgT))
+            plt.title('Temperature Graph | Average = {0:0.1f} deg C'.format(self.avgT))
+            plt.draw()
+            
         elif self.mode == "F":
-            plt.ylabel('Temperature (Fahrenheit)')
-            plt.title('Live Temperature Graph | Average = {0:0.1f} deg F'.format((self.avgT*9)/5+32))
+            
+            #plt.plot(self.idx_list, self.tempf_list)
+            plt.plot(self.idx_list, self.temp_list,'b')
+            plt.xlabel('Latest 10 values')
+            plt.ylabel('Temperature (Fahrenheit')
+            plt.title('Temperature Graph | Average = {0:0.1f} deg F'.format(self.avgTf))
+            plt.draw()
+          
+            
         plt.grid(True)
         
         plt.subplot(313)
         plt.plot(self.idx_list, self.hum_list)
         plt.xlabel('Latest 10 values')
         plt.ylabel('Humidity (%)')
-        plt.title('Live Humidity Graph | Average = {0:0.1f} %'.format(self.avgH))
+        plt.title('Humidity Graph | Average = {0:0.1f} %'.format(self.avgH))
         plt.grid(True)
         plt.draw()          
         plt.pause(0.001)
@@ -141,6 +154,7 @@ class Form(Ui_Form):
         elif self.graph == True:
             self.graph = False
             self.ui.showHideGraphs.setText("Show Graphs")
+            plt.close()
             
 
     def toggleFC(self):
@@ -156,17 +170,18 @@ class Form(Ui_Form):
         self.sensor()
 
         self.temp_list.pop(0)
+        self.tempf_list.pop(0)
         self.hum_list.pop(0)    
-        if self.mode == "F":
-            self.temp_list.append(self.temp_f)
-        elif self.mode == "C":
-            self.temp_list.append(self.temp_c)
-        else: return
+        self.tempf_list.append(self.temp_f)
+        
+        self.temp_list.append(self.temp_c)
+        
         self.hum_list.append(self.hum)
         
         # average value calculation
         self.avgT = sum(self.temp_list)/10
         self.avgH = sum(self.hum_list)/10
+        self.avgTf = sum(self.tempf_list)/10
         
         self.updateTemp()
         self.updateHum()
