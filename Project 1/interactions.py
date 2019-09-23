@@ -78,14 +78,20 @@ class Form(Ui_Form):
         pin = 4     # pin 7 on rpi 3 is GPIO 4
         
         humidity, temperature = Adafruit_DHT.read_retry(sensor, pin)
-        t_f=round((temperature*9)/5+32);
+                #error case
+        if humidity is None or temperature is None:
+            self.ui.status.setText('status: Sensor is not working!!!')
+            return
+            
+        t_f=round((temperature*9)/5+32)
         #self.temp_f = (temperature*9)/5 + 32.0  
         self.temp_c = temperature
         self.hum = humidity
         self.temp_f = (temperature*9)/5 + 32.0 
-        t_f=round((temperature*9)/5+32);
+        t_f=round((temperature*9)/5+32)
         unix = int(time.time())
         date = str(datetime.datetime.fromtimestamp(unix).strftime('%Y-%m-%d %H:%M:%S'))
+        self.ui.status.setText("status: Temperature - " + str(int(self.temp_f)) + "deg F / " + str(int(self.temp_c)) + "deg C || Humidity: " + str(int(self.hum)) + "% || Date/Time: " + date)
 
         c.execute("INSERT INTO SENSOR (DATEandTIME, TEMPERATUREinC,TEMPERATUREinF,HUMIDITY) VALUES (%s, %s, %s, %s)",(date, temperature, t_f, humidity))
 
@@ -98,11 +104,6 @@ class Form(Ui_Form):
         # humidity = 20
         # temperature = 30
 
-        #error case
-        if humidity is None or temperature is None:
-            self.ui.status.setText('status: Sensor is not working!!!')
-        else:
-            self.ui.status.setText("status: Temperature - " + str(int(self.temp_f)) + "deg F / " + str(int(self.temp_c)) + "deg C || Humidity: " + str(int(self.hum)) + "% || Date/Time: " + date)
   
 
         # self.currTemp.setText('{0:0.1f} * C '.format(self.temp_c))
