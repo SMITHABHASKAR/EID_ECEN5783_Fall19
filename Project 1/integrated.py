@@ -15,7 +15,7 @@ import matplotlib
 matplotlib.use('QT5Agg')
 
 # custom classes modified from https://stackoverflow.com/questions/43947318/plotting-matplotlib-figure-inside-qwidget-using-qt-designer-form-and-pyqt5
-# to plot the 
+# to plot the graphs in the same window as rest of UI 
 class Graph(Canvas):
     def __init__(self, parent=None):
         self.figure = Figure()
