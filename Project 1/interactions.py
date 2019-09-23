@@ -15,7 +15,9 @@ from integrated import Ui_Form #note the capitalization
 conn = MySQLdb.connect(host= "localhost",user= "EID",passwd="EID",db="TEMP")
 c=conn.cursor()
 
+# main UI class
 class Form(Ui_Form):
+    # initialize function: set all tracked variables and start 15 second looped timer
     def __init__ (self, parent = None):
         super(Form, self).__init__ ()
         self.ui = Ui_Form()
@@ -24,8 +26,8 @@ class Form(Ui_Form):
         # initialize values to track
         self.count = 0 # value of progress bar
         self.repeats = 0 # stop at 30
-        self.temp_f = 0
-        self.temp_c = 0
+        self.temp_f = 0 # Fahrenheit reading
+        self.temp_c = 0 # Celsius reading
         self.avgT = 0
         self.avgH = 0
         self.maxT = 0
@@ -60,6 +62,7 @@ class Form(Ui_Form):
         
         self.updateReadings()
 
+    # rescale temperature sliders after switching F <--> C
     def scaleTemp(self):
         if self.mode == "F":
             self.ui.tempSet.setMin(0)
@@ -72,6 +75,7 @@ class Form(Ui_Form):
         else:
             return
 
+    # take in current reading from sensor: temperature, humidity, datetime
     def sensor(self):
 #        # uncomment if running with actual sensor
         sensor = Adafruit_DHT.DHT22
@@ -110,6 +114,7 @@ class Form(Ui_Form):
         # self.currTempinF.setText('{0:0.1f} * F '.format(self.temp_f))
         # self.currHum.setText('{0:0.1f} %  '.format(self.hum))
     
+    # generate Temperature and Humidity graphs
     def plot_graph(self):
         self.ui.tempGraph.plot(self.idx_list, self.temp_list)
         plt = self.ui.tempGraph.canvas.ax
@@ -131,10 +136,12 @@ class Form(Ui_Form):
         plt2.set_title('Humidity') #| Average = {0:0.1f} %.format(self.avgH)
         self.ui.humGraph.canvas.draw()
 
+    # pull current reading
     def button_pressed(self):
         self.sensor()
         #self.timerEvent(64) #this needs an argument to work but I'm not sure what is is yet so I just put in some random number
 
+    # show or hide graphs
     def toggleGraphs(self):
         if self.graph == False:
             self.graph = True
@@ -148,6 +155,7 @@ class Form(Ui_Form):
             self.ui.tempGraph.hide()
             self.ui.humGraph.hide()
 
+    # switch between Fahrenheit (F) and Celsius (C)
     def toggleFC(self):
         if self.mode == "C":
             self.mode = "F"
@@ -157,6 +165,7 @@ class Form(Ui_Form):
             self.ui.switchFC.setText("C")
         self.scaleTemp()
 
+    # pull current reading and recalculate average
     def updateReadings(self):
         self.sensor()
 
@@ -177,6 +186,7 @@ class Form(Ui_Form):
         self.updateTemp()
         self.updateHum()
 
+    # update temperature readouts and check if out of bounds
     def updateTemp(self):
         # update temperature limits
         self.maxT = int(self.ui.tempSet.end())
@@ -213,6 +223,7 @@ class Form(Ui_Form):
         self.ui.currTemp.setStyle(self.ui.currTemp.style())
         self.ui.avgTemp.setStyle(self.ui.avgTemp.style())
 
+    # update humidity readouts and check if out of bounds
     def updateHum(self):
         #update humidity bounds
         self.minH = self.ui.humSet.start()
@@ -235,6 +246,7 @@ class Form(Ui_Form):
         self.ui.currHum.setStyle(self.ui.currTemp.style())
         self.ui.avgHum.setStyle(self.ui.avgTemp.style())
 
+    # handle timerstart/increment/loop/stop
     def timerEvent(self, e):
         self.ui.autoRefresh.setValue(self.count)
         if self.count >=15:
