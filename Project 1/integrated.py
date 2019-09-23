@@ -9,6 +9,37 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
 from rangeslider_vert import *
 
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as Canvas
+from matplotlib.figure import Figure
+import matplotlib
+matplotlib.use('QT5Agg')
+
+# custom classes modified from https://stackoverflow.com/questions/43947318/plotting-matplotlib-figure-inside-qwidget-using-qt-designer-form-and-pyqt5
+# to plot the 
+class Graph(Canvas):
+    def __init__(self, parent=None):
+        self.figure = Figure()
+        self.ax = self.figure.add_subplot(111)
+        Canvas.__init__(self, self.figure)
+        Canvas.setSizePolicy(self, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+        Canvas.updateGeometry(self)
+
+class MPLWidget(QtWidgets.QWidget):
+    def __init__(self, parent=None):
+        QtWidgets.QWidget.__init__(self, parent)
+        self.canvas = Graph()
+        self.vbl = QtWidgets.QVBoxLayout()
+        self.vbl.addWidget(self.canvas)
+        self.setLayout(self.vbl)
+        #self.plot()
+        
+    def plot(self, Xdata, Ydata):
+        #data = [random.random() for i in range(10)]
+        
+        self.canvas.ax.clear()
+        self.canvas.ax.plot(Xdata, Ydata, '*-')
+        self.canvas.draw()
+
 class Ui_Form(QtWidgets.QMainWindow):
     def setupUi(self, Form):
         Form.setObjectName("Form")
@@ -21,15 +52,17 @@ class Ui_Form(QtWidgets.QMainWindow):
         self.status.setGeometry(QtCore.QRect(25, 25, 650, 31))
         self.status.setObjectName("statusMessage")
                                 
-#        # temperature graph
-#        self.graphicsView = QtWidgets.QGraphicsView(Form)
-#        self.graphicsView.setGeometry(QtCore.QRect(100, 30, 256, 192))
-#        self.graphicsView.setObjectName("graphicsView")
-#
-#        # humidity graph
-#        self.graphicsView_2 = QtWidgets.QGraphicsView(Form)
-#        self.graphicsView_2.setGeometry(QtCore.QRect(380, 30, 256, 192))
-#        self.graphicsView_2.setObjectName("graphicsView_2")
+        # temperature graph
+        self.tempGraph = MPLWidget(Form)
+        self.tempGraph.show()
+        self.tempGraph.setGeometry(QtCore.QRect(100, 30, 256, 192))
+        self.tempGraph.setObjectName("tempGraph")
+
+        # humidity graph
+        self.humGraph = MPLWidget(Form)
+        self.humGraph.show()
+        self.humGraph.setGeometry(QtCore.QRect(380, 30, 256, 192))
+        self.humGraph.setObjectName("humGraph")
 
         # temperature slider
         self.tempSet = QRangeSlider(Form)

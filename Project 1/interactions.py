@@ -103,44 +103,25 @@ class Form(Ui_Form):
         # self.currTemp.setText('{0:0.1f} * C '.format(self.temp_c))
         # self.currTempinF.setText('{0:0.1f} * F '.format(self.temp_f))
         # self.currHum.setText('{0:0.1f} %  '.format(self.hum))
+    
     def plot_graph(self):
+        self.ui.tempGraph.plot(self.idx_list, self.temp_list)
+        plt = self.ui.tempGraph.canvas.ax
         
-        plt.clf()
-        plt.subplot(311)
-        
-        
+        plt.set_xlabel('Latest 10 values')
         
         if self.mode == "C":
-            #plt.subplot(312)
-            #plt.plot(self.idx_list, self.temp_list)
-            plt.plot(self.idx_list, self.temp_list,'r')
-            plt.xlabel('Latest 10 values')
-            plt.ylabel('Temperature (Celsius)')
-            plt.title('Temperature Graph | Average = {0:0.1f} deg C'.format(self.avgT))
-            plt.draw()
-            
+            plt.set_ylabel('Temperature (Celsius)')
+            plt.set_title('Live Temperature Graph | Average = {0:0.1f} deg C'.format(self.avgT))
         elif self.mode == "F":
-            
-            #plt.plot(self.idx_list, self.tempf_list)
-            plt.plot(self.idx_list, self.temp_list,'b')
-            plt.xlabel('Latest 10 values')
-            plt.ylabel('Temperature (Fahrenheit')
-            plt.title('Temperature Graph | Average = {0:0.1f} deg F'.format(self.avgTf))
-            plt.draw()
-          
-            
-        plt.grid(True)
-        
-        plt.subplot(313)
-        plt.plot(self.idx_list, self.hum_list)
-        plt.xlabel('Latest 10 values')
-        plt.ylabel('Humidity (%)')
-        plt.title('Humidity Graph | Average = {0:0.1f} %'.format(self.avgH))
-        plt.grid(True)
-        plt.draw()          
-        plt.pause(0.001)
-        plt.ion()
-        plt.show()
+            plt.set_ylabel('Temperature (Fahrenheit)')
+            plt.set_title('Live Temperature Graph | Average = {0:0.1f} deg F'.format(self.avgT))
+
+        self.ui.humGraph.plot(self.idx_list, self.hum_list)        
+        plt2 = self.ui.humGraph.canvas.ax
+        plt.set_xlabel('Latest 10 values')
+        plt.set_ylabel('Humidity (%)')
+        plt.set_title('Humidity Graph | Average = {0:0.1f} %'.format(self.avgH))
 
     def button_pressed(self):
         self.updateReadings()
