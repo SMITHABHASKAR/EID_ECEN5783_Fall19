@@ -23,6 +23,7 @@ class Form(Ui_Form):
 
         # initialize values to track
         self.count = 0 # value of progress bar
+        self.repeats = 0 # stop at 30
         self.temp_f = 0
         self.temp_c = 0
         self.avgT = 0
@@ -33,6 +34,10 @@ class Form(Ui_Form):
         self.ui.switchFC.setText(self.mode)
         self.graph = False # choose true (show graphs) or false (hide graphs)
         self.ui.showHideGraphs.setText("Show Graphs")
+        #self.ui.tempGraph.canvas.ax.clear()
+        #self.ui.tempGraph.canvas.ax.set_axis_off()
+        #self.ui.humGraph.canvas.ax.clear()
+        #self.ui.humGraph.canvas.ax.set_axis_off()
         self.hum = 0
         self.maxH = 0
         self.minH = 0
@@ -112,31 +117,35 @@ class Form(Ui_Form):
         
         if self.mode == "C":
             plt.set_ylabel('Temperature (Celsius)')
-            plt.set_title('Live Temperature Graph | Average = {0:0.1f} deg C'.format(self.avgT))
+            plt.set_title('Temperature') #| Average = {0:0.1f} deg C
         elif self.mode == "F":
             plt.set_ylabel('Temperature (Fahrenheit)')
-            plt.set_title('Live Temperature Graph | Average = {0:0.1f} deg F'.format(self.avgT))
+            plt.set_title('Temperature') # | Average = {0:0.1f} deg F.format(self.avgT).format(self.avgT)
+        self.ui.tempGraph.canvas.draw()
 
         self.ui.humGraph.plot(self.idx_list, self.hum_list)        
         plt2 = self.ui.humGraph.canvas.ax
-        plt.set_xlabel('Latest 10 values')
-        plt.set_ylabel('Humidity (%)')
-        plt.set_title('Humidity Graph | Average = {0:0.1f} %'.format(self.avgH))
+        plt2.set_xlabel('Latest 10 values')
+        plt2.set_ylabel('Humidity (%)')
+        plt2.set_title('Humidity') #| Average = {0:0.1f} %.format(self.avgH)
+        self.ui.humGraph.canvas.draw()
 
     def button_pressed(self):
-        self.updateReadings()
-        self.timerEvent(64) #this needs an argument to work but I'm not sure what is is yet so I just put in some random number
+        self.sensor()
+        #self.timerEvent(64) #this needs an argument to work but I'm not sure what is is yet so I just put in some random number
 
     def toggleGraphs(self):
         if self.graph == False:
             self.graph = True
             self.ui.showHideGraphs.setText("Hide Graphs")
+            self.ui.tempGraph.show()
+            self.ui.humGraph.show()
             self.plot_graph()
         elif self.graph == True:
             self.graph = False
             self.ui.showHideGraphs.setText("Show Graphs")
-            plt.close()
-            
+            self.ui.tempGraph.hide()
+            self.ui.humGraph.hide()
 
     def toggleFC(self):
         if self.mode == "C":
@@ -229,9 +238,11 @@ class Form(Ui_Form):
         self.ui.autoRefresh.setValue(self.count)
         if self.count >=15:
             self.count = 0
+            self.repeats += 1
+            if self.repeats == 29:
+                self.timer.stop()
             self.updateReadings()
-            if self.graph:
-                self.plot_graph()
+            self.plot_graph()
         else:
             if self.timer.isActive():
                 pass

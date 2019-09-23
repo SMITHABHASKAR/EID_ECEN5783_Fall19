@@ -33,59 +33,81 @@ class MPLWidget(QtWidgets.QWidget):
         self.setLayout(self.vbl)
         #self.plot()
         
+    def show(self):
+        self.canvas.ax.set_axis_on()
+        self.canvas.ax.set_visible(True)
+        self.canvas.draw()
+        
     def plot(self, Xdata, Ydata):
         #data = [random.random() for i in range(10)]
-        
-        self.canvas.ax.clear()
         self.canvas.ax.plot(Xdata, Ydata, '*-')
+        
+    def hide(self):
+        self.canvas.ax.set_visible(False)
+        self.canvas.ax.set_axis_off()
         self.canvas.draw()
 
 class Ui_Form(QtWidgets.QMainWindow):
     def setupUi(self, Form):
         Form.setObjectName("Form")
-        Form.resize(730, 400)
-        self.refresh = QtWidgets.QPushButton(Form)
-        self.refresh.setGeometry(QtCore.QRect(310, 280, 101, 31))
-        self.refresh.setObjectName("refresh")
-
+        Form.resize(800, 450)
+        
         self.status = QtWidgets.QLabel(Form)
-        self.status.setGeometry(QtCore.QRect(25, 25, 650, 31))
+        self.status.setGeometry(QtCore.QRect(50, 2, 650, 31))
         self.status.setObjectName("statusMessage")
+        
+        self.showHideGraphs = QtWidgets.QPushButton(Form)
+        self.showHideGraphs.setGeometry(QtCore.QRect(350, 300, 101, 31))
+        self.showHideGraphs.setObjectName("showHideGraphs")
+        
+        self.refresh = QtWidgets.QPushButton(Form)
+        self.refresh.setGeometry(QtCore.QRect(350, 350, 101, 31))
+        self.refresh.setObjectName("refresh")
+        
+        self.autoRefresh = QtWidgets.QProgressBar(Form)
+        self.autoRefresh.setGeometry(QtCore.QRect(350, 390, 101, 16))
+        self.autoRefresh.setMaximum(15)
+        self.autoRefresh.setProperty("value", 0)
+        self.autoRefresh.setObjectName("autoRefresh")
                                 
         # temperature graph
         self.tempGraph = MPLWidget(Form)
         self.tempGraph.show()
-        self.tempGraph.setGeometry(QtCore.QRect(100, 30, 256, 192))
+        self.tempGraph.setGeometry(QtCore.QRect(100, 30, 300, 250))
         self.tempGraph.setObjectName("tempGraph")
+        self.tempGraph.hide()
 
         # humidity graph
         self.humGraph = MPLWidget(Form)
         self.humGraph.show()
-        self.humGraph.setGeometry(QtCore.QRect(380, 30, 256, 192))
+        self.humGraph.setGeometry(QtCore.QRect(400, 30, 300, 250))
         self.humGraph.setObjectName("humGraph")
+        self.humGraph.hide()
 
         # temperature slider
         self.tempSet = QRangeSlider(Form)
-        self.tempSet.setGeometry(QtCore.QRect(20, 60, 30, 300))
+        self.tempSet.setGeometry(QtCore.QRect(50, 60, 30, 300))
         self.tempSet.show()
         self.tempSet.setObjectName("tempSet")
 
+        self.label = QtWidgets.QLabel(Form)
+        self.label.setGeometry(QtCore.QRect(10, 371, 101, 21))
+        self.label.setAlignment(QtCore.Qt.AlignCenter)
+        self.label.setObjectName("label")
+        
         # humidity slider
         self.humSet = QRangeSlider(Form)
-        self.humSet.setGeometry(QtCore.QRect(690, 60, 30, 300))
+        self.humSet.setGeometry(QtCore.QRect(720, 60, 30, 300))
         self.humSet.show()
         self.humSet.setObjectName("humSet")
 
-        self.label = QtWidgets.QLabel(Form)
-        self.label.setGeometry(QtCore.QRect(5, 371, 101, 21))
-        self.label.setAlignment(QtCore.Qt.AlignCenter)
-        self.label.setObjectName("label")
         self.label_2 = QtWidgets.QLabel(Form)
-        self.label_2.setGeometry(QtCore.QRect(670, 360, 71, 21))
+        self.label_2.setGeometry(QtCore.QRect(705, 371, 71, 21))
         self.label_2.setObjectName("label_2")
         
+        # temperature readout: current and avg
         self.widget = QtWidgets.QWidget(Form)
-        self.widget.setGeometry(QtCore.QRect(100, 240, 120, 121))
+        self.widget.setGeometry(QtCore.QRect(137, 270, 120, 121))
         self.widget.setAutoFillBackground(True)
         self.widget.setStyleSheet("QLCDNumber[alert=true]{background: rgb(255, 0, 0)}")
         self.widget.setObjectName("widget")
@@ -94,7 +116,6 @@ class Ui_Form(QtWidgets.QMainWindow):
         self.avgTemp.setGeometry(QtCore.QRect(50, 90, 64, 23))
         self.avgTemp.setDigitCount(3)
         self.avgTemp.setSegmentStyle(QtWidgets.QLCDNumber.Flat)
-        #self.avgTemp.setProperty("intValue", 73)
         self.avgTemp.setProperty("min", 65)
         self.avgTemp.setProperty("max", 85)
         self.avgTemp.setProperty("alert", False)
@@ -117,8 +138,13 @@ class Ui_Form(QtWidgets.QMainWindow):
         self.label_3.setGeometry(QtCore.QRect(20, 90, 31, 22))
         self.label_3.setObjectName("label_3")
 
+        self.switchFC = QtWidgets.QPushButton(Form)
+        self.switchFC.setGeometry(QtCore.QRect(259, 302, 51, 31))
+        self.switchFC.setObjectName("switchFC")
+        
+        # humidity readout: current and avg
         self.widget_2 = QtWidgets.QWidget(Form)
-        self.widget_2.setGeometry(QtCore.QRect(510, 240, 120, 121))
+        self.widget_2.setGeometry(QtCore.QRect(510, 270, 120, 121))
         self.widget_2.setObjectName("widget_2")
         self.widget_2.setStyleSheet("QLCDNumber[alert=true]{background: rgb(255, 0, 0)}")
         self.avgHum = QtWidgets.QLCDNumber(self.widget_2)
@@ -140,23 +166,11 @@ class Ui_Form(QtWidgets.QMainWindow):
         self.label_4 = QtWidgets.QLabel(self.widget_2)
         self.label_4.setGeometry(QtCore.QRect(20, 90, 31, 22))
         self.label_4.setObjectName("label_4")
-        self.label_5 = QtWidgets.QLabel(Form)
-        self.label_5.setGeometry(QtCore.QRect(632, 272, 20, 31))
         
-        self.autoRefresh = QtWidgets.QProgressBar(Form)
-        self.autoRefresh.setGeometry(QtCore.QRect(310, 320, 101, 16))
-        self.autoRefresh.setMaximum(15)
-        self.autoRefresh.setProperty("value", 0)
-        self.autoRefresh.setObjectName("autoRefresh")
-
-        self.showHideGraphs = QtWidgets.QPushButton(Form)
-        self.showHideGraphs.setGeometry(QtCore.QRect(310, 230, 101, 31))
-        self.showHideGraphs.setObjectName("showHideGraphs")
-
-        self.switchFC = QtWidgets.QPushButton(Form)
-        self.switchFC.setGeometry(QtCore.QRect(222, 272, 51, 31))
-        self.switchFC.setObjectName("switchFC")
-
+        self.label_5 = QtWidgets.QLabel(Form)
+        self.label_5.setGeometry(QtCore.QRect(632, 302, 20, 31))
+        
+        
         self.retranslateUi(Form)
 
         # connections here
