@@ -18,7 +18,7 @@ Citation:
 
 ## Project Work
 
-We have designed a UI platform which is virtual replica of a thermostat. It is integrated with the Raspberry Pi 3 and the DHT22 sensor. The setup is as shown below. <Insert the photo of the setup>
+We have designed a UI platform which is virtual replica of a thermostat. It is integrated with the Raspberry Pi 3 and the DHT22 sensor. The setup is as shown below. https://github.com/SMITHABHASKAR/EID_ECEN5783_Fall19/blob/master/Project%201/Project1-Schematic.png
   
 It's an interactive UI, where in you can set the temperature and humidity range by interacting with the double-ended sliders for low and high bounds. When the sensor reading is out of the specified range, the interface will update you by turning the readings red and printing an alarm message. The sensor readings are collected and uploaded every 15 seconds to the database. The database looks like this: https://github.com/SMITHABHASKAR/EID_ECEN5783_Fall19/blob/master/Project%201/Project1-MySQL.PNG
 The first column is the date and time, followed by: temperature in Celsius, temperature in Fahrenheit, and humidity. You can hide or show the graphs using the center button. The graphs are plotted based on the last 10 stored values from the tempertaure and humidity readings. However, if you are impatient and must simply know the temperature and humidity immediately, you can hit the "refresh" button to display the current status of the device in the status line. 
