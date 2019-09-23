@@ -20,7 +20,7 @@ Citation:
 
 We have designed a UI platform which is virtual replica of a thermostat. It is integrated with the Raspberry Pi 3 and the DHT22 sensor. The setup is as shown below. <Insert the photo of the setup>
   
-It's an interactive UI, where in you can set the temperature and humidity range, and when the sensor reading is out of range, it'll update you. It also displays the current status of the device in the status line. The sensor readings are updated every 15 seconds to the database. The database looks like this: 
+It's an interactive UI, where in you can set the temperature and humidity range, and when the sensor reading is out of range, it'll update you. It also displays the current status of the device in the status line. The sensor readings are updated every 15 seconds to the database. The database looks like this: https://github.com/SMITHABHASKAR/EID_ECEN5783_Fall19/blob/master/Project%201/Project1-MySQL.PNG
 The first column is the date and time, followed by, temperature readings in degree C, degree Fahrenheit, humidity. 
 The graph is plotted based on the last 10 values from the tempertaure and humidity readings. 
 
