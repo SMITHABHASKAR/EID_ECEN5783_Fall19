@@ -117,7 +117,8 @@ class Form(Ui_Form):
     def plot_graph(self):
         self.ui.tempGraph.plot(self.idx_list, self.temp_list)
         plt = self.ui.tempGraph.canvas.ax
-        
+        self.ui.tempGraph.canvas.clear()
+
         plt.set_xlabel('Latest 10 values')
         
         if self.mode == "C":
@@ -130,6 +131,7 @@ class Form(Ui_Form):
 
         self.ui.humGraph.plot(self.idx_list, self.hum_list)        
         plt2 = self.ui.humGraph.canvas.ax
+        self.ui.humGraph.canvas.clear()
         plt2.set_xlabel('Latest 10 values')
         plt2.set_ylabel('Humidity (%)')
         plt2.set_title('Humidity') #| Average = {0:0.1f} %.format(self.avgH)
