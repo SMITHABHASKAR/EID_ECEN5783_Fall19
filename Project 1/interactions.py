@@ -97,7 +97,7 @@ class Form(Ui_Form):
         date = str(datetime.datetime.fromtimestamp(unix).strftime('%Y-%m-%d %H:%M:%S'))
         self.ui.status.setText("status: Temperature - " + str(int(self.temp_f)) + "deg F / " + str(int(self.temp_c)) + "deg C || Humidity: " + str(int(self.hum)) + "% || Date/Time: " + date)
 
-        c.execute("INSERT INTO SENSOR (DATEandTIME, TEMPERATUREinC,TEMPERATUREinF,HUMIDITY) VALUES (%s, %s, %s, %s)",(date, temperature, t_f, humidity))
+        c.execute("INSERT INTO Sensor (dateandtime, TEMPERATUREinC,TEMPERATUREinF,HUMIDITY) VALUES (%s, %s, %s, %s)",(date, temperature, t_f, humidity))
 
         conn.commit()
 #        c.close
@@ -118,6 +118,7 @@ class Form(Ui_Form):
     def plot_graph(self):
         self.ui.tempGraph.plot(self.idx_list, self.temp_list)
         plt = self.ui.tempGraph.canvas.ax
+        #plt.clear()
         
         plt.set_xlabel('Latest 10 values')
         
@@ -131,6 +132,7 @@ class Form(Ui_Form):
 
         self.ui.humGraph.plot(self.idx_list, self.hum_list)        
         plt2 = self.ui.humGraph.canvas.ax
+        #plt2.clear()
         plt2.set_xlabel('Latest 10 values')
         plt2.set_ylabel('Humidity (%)')
         plt2.set_title('Humidity') #| Average = {0:0.1f} %.format(self.avgH)
