@@ -81,17 +81,23 @@ class Form(Ui_Form):
         sensor = Adafruit_DHT.DHT22
         pin = 4     # pin 7 on rpi 3 is GPIO 4
         
-        humidity, temperature = Adafruit_DHT.read_retry(sensor, pin)
-        t_f=round((temperature*9)/5+32);
+        humidity, temperature = Adafruit_DHT.read(sensor, pin) #Changed to read() from read_retry()
+                #error case
+        if humidity is None or temperature is None:
+            self.ui.status.setText('status: Sensor is not working!!!')
+            return
+            
+        t_f=round((temperature*9)/5+32)
         #self.temp_f = (temperature*9)/5 + 32.0  
         self.temp_c = temperature
         self.hum = humidity
         self.temp_f = (temperature*9)/5 + 32.0 
-        t_f=round((temperature*9)/5+32);
+        t_f=round((temperature*9)/5+32)
         unix = int(time.time())
         date = str(datetime.datetime.fromtimestamp(unix).strftime('%Y-%m-%d %H:%M:%S'))
+        self.ui.status.setText("status: Temperature - " + str(int(self.temp_f)) + "deg F / " + str(int(self.temp_c)) + "deg C || Humidity: " + str(int(self.hum)) + "% || Date/Time: " + date)
 
-        c.execute("INSERT INTO SENSOR (DATEandTIME, TEMPERATUREinC,TEMPERATUREinF,HUMIDITY) VALUES (%s, %s, %s, %s)",(date, temperature, t_f, humidity))
+        c.execute("INSERT INTO Sensor (dateandtime, TEMPERATUREinC,TEMPERATUREinF,HUMIDITY) VALUES (%s, %s, %s, %s)",(date, temperature, t_f, humidity))
 
         conn.commit()
 #        c.close
@@ -102,11 +108,6 @@ class Form(Ui_Form):
         # humidity = 20
         # temperature = 30
 
-        #error case
-        if humidity is None or temperature is None:
-            self.ui.status.setText('status: Sensor is not working!!!')
-        else:
-            self.ui.status.setText("status: Temperature - " + str(int(self.temp_f)) + "deg F / " + str(int(self.temp_c)) + "deg C || Humidity: " + str(int(self.hum)) + "% || Date/Time: " + date)
   
 
         # self.currTemp.setText('{0:0.1f} * C '.format(self.temp_c))
@@ -117,8 +118,13 @@ class Form(Ui_Form):
     def plot_graph(self):
         self.ui.tempGraph.plot(self.idx_list, self.temp_list)
         plt = self.ui.tempGraph.canvas.ax
+<<<<<<< HEAD
+        #plt.clear()
+        
+=======
         self.ui.tempGraph.canvas.clear()
 
+>>>>>>> 9137ff1857ec93a8aaf044358873d9d465c0198b
         plt.set_xlabel('Latest 10 values')
         
         if self.mode == "C":
@@ -131,7 +137,11 @@ class Form(Ui_Form):
 
         self.ui.humGraph.plot(self.idx_list, self.hum_list)        
         plt2 = self.ui.humGraph.canvas.ax
+<<<<<<< HEAD
+        #plt2.clear()
+=======
         self.ui.humGraph.canvas.clear()
+>>>>>>> 9137ff1857ec93a8aaf044358873d9d465c0198b
         plt2.set_xlabel('Latest 10 values')
         plt2.set_ylabel('Humidity (%)')
         plt2.set_title('Humidity') #| Average = {0:0.1f} %.format(self.avgH)
