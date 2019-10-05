@@ -124,6 +124,7 @@ class Form(Ui_Form):
         if self.mode == "C":
             plt.set_ylabel('Temperature (Celsius)')
             plt.set_title('Temperature') #| Average = {0:0.1f} deg C
+            plt.savefig('Temperature.png') #Saves the plots to be pulled up on the HTML
         elif self.mode == "F":
             plt.set_ylabel('Temperature (Fahrenheit)')
             plt.set_title('Temperature') # | Average = {0:0.1f} deg F.format(self.avgT).format(self.avgT)
@@ -135,6 +136,7 @@ class Form(Ui_Form):
         plt2.set_xlabel('Latest 10 values')
         plt2.set_ylabel('Humidity (%)')
         plt2.set_title('Humidity') #| Average = {0:0.1f} %.format(self.avgH)
+        plt2.savefig('Humidity.png') #Saves the plots to be pulled up on the HTML
         self.ui.humGraph.canvas.draw()
 
     # pull current reading
