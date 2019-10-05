@@ -22,9 +22,9 @@
       };
  
       $(document).ready(function () {
-        $("div#message_details").hide()
+        $("div#connected").hide()
  
-        var ws;
+        var ws, ws2;
  
         $("#open").click(function(evt) {
           evt.preventDefault();
@@ -49,7 +49,7 @@
             $("#host").css("background", "#ff0000"); 
             $("#port").css("background", "#ff0000"); 
             $("#uri").css("background",  "#ff0000");
-            $("div#message_details").empty();
+            $("div#connected").empty();
  
             };
  
@@ -58,7 +58,44 @@
             $("#host").css("background", "#00ff00"); 
             $("#port").css("background", "#00ff00"); 
             $("#uri").css("background", "#00ff00");
-            $("div#message_details").show();
+            $("div#connected").show();
+            log("***Connection Opened***");
+          };
+        });
+
+        $("#open2").click(function(evt) {
+          evt.preventDefault();
+ 
+          var host = $("#host2").val();
+          var port = $("#port2").val();
+          var uri = $("#uri2").val();
+ 
+          // create websocket instance
+          ws2 = new WebSocket("ws://" + host + ":" + port + uri);
+           
+          // Handle incoming websocket message callback
+          ws2.onmessage = function(evt) {
+            log("Message Received: " + evt.data)
+            alert("message received: " + evt.data);
+            };
+ 
+          // Close Websocket callback
+          ws2.onclose = function(evt) {
+            log("***Connection Closed***");
+            alert("Connection close");
+            $("#host2").css("background", "#ff0000"); 
+            $("#port2").css("background", "#ff0000"); 
+            $("#uri2").css("background",  "#ff0000");
+            //$("div#message_details").empty();
+ 
+            };
+ 
+          // Open Websocket callback
+          ws2.onopen = function(evt) { 
+            $("#host2").css("background", "#00ff00"); 
+            $("#port2").css("background", "#00ff00"); 
+            $("#uri2").css("background", "#00ff00");
+            //$("div#message_details").show();
             log("***Connection Opened***");
           };
         });
@@ -68,6 +105,11 @@
             log("Sending Message: "+$("#message").val());
             ws.send($("#message").val());
         });
+
+        $("#send2").click(function(evt) {
+            log("Sending Message to WS 2");
+            ws2.send($("#message").val());
+        })
 
         // Poll sensor
         $("#read").click(function(evt) {
@@ -88,33 +130,43 @@
       <input type="text" id="port" value="8888" style="background:#ff0000;"/><br />
       <label for="uri">uri:</label>
       <input type="text" id="uri" value="/ws" style="background:#ff0000;"/><br />
-      <input type="submit" id="open1" value="Open" />
+      <input type="submit" id="open" value="open" />
     </div>
   	<h2>Connect to Node.js server</h2>
     <div id="connection_details_js">
       <label for="host">host:</label>
-      <input type="text" id="host" value="localhost" style="background:#ff0000;"/><br />
+      <input type="text" id="host2" value="localhost" style="background:#ff0000;"/><br />
       <label for="port">port:</label>
-      <input type="text" id="port" value="8888" style="background:#ff0000;"/><br />
+      <input type="text" id="port2" value="8888" style="background:#ff0000;"/><br />
       <label for="uri">uri:</label>
-      <input type="text" id="uri" value="/ws" style="background:#ff0000;"/><br />
-      <input type="submit" id="open2" value="Open" />
+      <input type="text" id="uri2" value="/ws" style="background:#ff0000;"/><br />
+      <input type="submit" id="open2" value="open2" />
     </div>
 
-    <h2>Servers</h2>
-    <div id="sensor">
-    	<input type="submit" id="read" value="Read Sensor">
-    </div>
-    <div id="latestStored">
-    	<input type="submit" id="latestStored" value="Get Latest Stored Reading">
-    </div>
-    <div id="convertFC">
-    	<input type="submit" id="convertFC" value="Switch F/C">
-    </div>
-    <div id="network">
-    	<input type="submit" id="network" value="Test Network">
-    </div>
-    <div id="terminal">
+    <div id="connected">
+      <h2>Test</h2>
+      <div id="message_details">
+          <label for="message">message:</label>
+          <input type="text" id="message" value="Hello World!"/>
+          <input type="submit" id="send" value="send"/>
+          <input type="submit" id="send2" value="send2"/>
+      </div>
+
+      <h2>Servers</h2>
+      <div id="sensor">
+      	<button type="submit" id="read" value="read">Read Sensor</button>
+      </div>
+      <div id="latestStored">
+      	<button type="submit" id="latestStored" value="get">Get Latest Stored Reading</button> 
+      </div>
+      <div id="convertFC">
+      	<button type="submit" id="convertFC" value="switch">Switch F/C</button>
+      </div>
+      <div id="network">
+      	<button type="submit" id="network" value="network">Test Network</button>
+      </div>
+      <div id="terminal">
+      </div>
     </div>
   </body>
 </html>
