@@ -102,21 +102,37 @@
  
         // Send websocket message function
         $("#send").click(function(evt) {
-            log("Sending Message: "+$("#message").val());
+            log("Sending Message to WS 1: "+$("#message").val());
             ws.send($("#message").val());
         });
 
         $("#send2").click(function(evt) {
-            log("Sending Message to WS 2");
+            log("Sending Message to WS 2: " +$("#message").val());
             ws2.send($("#message").val());
         })
 
         // Poll sensor
         $("#read").click(function(evt) {
-        	ws.send("dataplease");
+        	ws.send("read");
         	//log("Sensor reads nonsense");
         });
+
+        // Get latest MySQL entry
+        $("#get").click(function(evt) {
+          ws2.send("get");
+        });
+
+        // Get latest MySQL entry
+        $("#switch").click(function(evt) {
+          ws.send("switch");
+          ws2.send("switch");
+        });
  
+        // Get latest MySQL entry
+        $("#network").click(function(evt) {
+          ws.send("network");
+          ws2.send("network");
+        });
       });
     </script>
   </head>
@@ -125,22 +141,22 @@
   	<h2>Connect to Python server</h2>
     <div id="connection_details_py">
       <label for="host">host:</label>
-      <input type="text" id="host" value="localhost" style="background:#ff0000;"/><br />
+      <input type="text" id="host" value="192.168.7.29" style="background:#ff0000;"/><br />
       <label for="port">port:</label>
       <input type="text" id="port" value="8888" style="background:#ff0000;"/><br />
       <label for="uri">uri:</label>
       <input type="text" id="uri" value="/ws" style="background:#ff0000;"/><br />
-      <input type="submit" id="open" value="open" />
+      <button type="submit" id="open" value="open">Open</button>
     </div>
   	<h2>Connect to Node.js server</h2>
     <div id="connection_details_js">
       <label for="host">host:</label>
-      <input type="text" id="host2" value="localhost" style="background:#ff0000;"/><br />
+      <input type="text" id="host2" value="192.168.7.29" style="background:#ff0000;"/><br />
       <label for="port">port:</label>
-      <input type="text" id="port2" value="8888" style="background:#ff0000;"/><br />
+      <input type="text" id="port2" value="8080" style="background:#ff0000;"/><br />
       <label for="uri">uri:</label>
       <input type="text" id="uri2" value="/ws" style="background:#ff0000;"/><br />
-      <input type="submit" id="open2" value="open2" />
+      <button type="submit" id="open2" value="open2">Open</button>
     </div>
 
     <div id="connected">
@@ -165,8 +181,9 @@
       <div id="network">
       	<button type="submit" id="network" value="network">Test Network</button>
       </div>
-      <div id="terminal">
-      </div>
+    </div>
+    
+    <div id="terminal">
     </div>
   </body>
 </html>
