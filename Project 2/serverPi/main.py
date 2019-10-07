@@ -1,28 +1,48 @@
 import sys, os, tornado
 from PyQt5.QtWidgets import QDialog, QApplication # case sensitive!
 from integrated import *
-from interactions import *
+from interactions_dummysensor import *
 from tornado_websocket import *
 
 class AppWindow(QDialog):
     def __init__(self): 
         super().__init__()
-        self.ui = Ui_Form() # Class name from bestThermostat.py
+        self.ui = Ui_Form()
         self.ui.setupUi(self)
+        
+        self.thread = ListenWebSocket()
+        self.thread.start()
+        
         self.show()
 
-app = QApplication(sys.argv)
+class ListenWebSocket(QtCore.QThread):
+    def __init__(self, parent=None):
+        super(ListenWebSocket, self).__init__(parent)
+        websocket.enableTrace(True)
+        self.ws = PythonWS()
+    
+    def run(self):
+        self.ws.open()
+    
+    def on_message(self, ws, message):
+        self.ws.on_message()
+            
+    def on_close(self, ws):
+        self.ws.on_close()
+
+QTApp = QApplication(sys.argv)
 w = Form()
 w.show()
 
-application = tornado.web.Application([
-    (r'/ws', PythonWS),
+tornadoApp = tornado.web.Application([
+    (r'/ws', WSHandler),
 ])
 
-http_server = tornado.httpserver.HTTPServer(application)
-http_server.listen(8888)
+port = 8888
+http_server = tornado.httpserver.HTTPServer(tornadoApp)
+http_server.listen(port)
 myIP = socket.gethostbyname(socket.gethostname())
-print('*** Websocket Server Started at %s***' % myIP)
+print('*** Websocket Server Listening on Port %s***' % port)
 tornado.ioloop.IOLoop.instance().start()
 
-sys.exit(app.exec_())
+sys.exit(QTApp.exec_())

@@ -9,30 +9,17 @@ import MySQLdb
 
 from PyQt5 import QtCore, QtGui, QtWidgets #works for PyQt5
 from integrated import Ui_Form #note the capitalization
-from tornado_websocket.py import WSHandler
+from tornado_websocket import WSHandler
 
 conn = MySQLdb.connect(host= "localhost",user= "EID",passwd="EID",db="mysql")
 c=conn.cursor()
 
 # Websocket class - handle behaviors specifically for transmitting temp/humidity data
 class PythonWS(WSHandler):
-    self.source = Form() # UI with data to send/receive
     def on_message(self, message):
         print('message received:  %s' % message)
-        if message == "read":
-            print('received a remote data request for sensor')
-            self.source.button_pressed(); # treat like a button press
-            self.write_message(str(self.ui.status.text())) # just send the status line
-        if message == "switch":
-            print('received remote request to convert F/C')
-            self.source.toggleFC()
-        if message == "network":
-            print('received remote request for last 10 MySQL entries')
-            
-        else: 
-            print('unknown command')
-            self.write_message('Python: I do not know what to do with that')
-
+        return message
+    
 # main UI class - from Project 1
 class Form(Ui_Form):
     # initialize function: set all tracked variables and start 15 second looped timer
@@ -40,6 +27,9 @@ class Form(Ui_Form):
         super(Form, self).__init__ ()
         self.ui = Ui_Form()
         self.ui.setupUi(self)
+        
+        #start websocket server
+        self.ws = PythonWS()
 
         # initialize values to track
         self.count = 0 # value of progress bar
@@ -286,3 +276,18 @@ class Form(Ui_Form):
         return (temp_f - 32)*5/9
     def CtoF(temp_c):
         return temp_c*9/5 + 32
+
+    def websocket(self, ws):
+        if message == "read":
+            print('received a remote data request for sensor')
+            self.source.button_pressed(); # treat like a button press
+            self.write_message(str(self.ui.status.text())) # just send the status line
+        if message == "switch":
+            print('received remote request to convert F/C')
+            self.source.toggleFC()
+        if message == "network":
+            print('received remote request for last 10 MySQL entries')
+            
+        else: 
+            print('unknown command')
+            self.write_message('Python: I do not know what to do with that')

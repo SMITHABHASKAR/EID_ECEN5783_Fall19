@@ -1,5 +1,6 @@
 const http = require('http');
 const mysql = require('mysql');
+const WebSocket = require('ws');
 
 const pool = mysql.createPool({
   host: 'localhost',
@@ -48,23 +49,14 @@ const server = http.createServer((req, res)=>{
   });
 });
 
-// create Websocket on the HTTP server
-const wss = new Websocket.Server({ server });
+const wss = new WebSocket.Server({ server });
 
-// define behaviors for Websocket
 wss.on('connection', function connection(ws) {
   ws.on('message', function incoming(message) {
     console.log('received: %s', message);
-    if (message == 'get') {
-      // get latest sensor reading stored in MySQL
-      console.log('getting latest stored reading');
-      ws.send('sensor says');
-    }
-    if (message == 'network') {
-      console.log('testing network latency');
-      ws.send('network');
-    }
   });
+
+  ws.send('something');
 });
 
 server.listen(8080, ()=>{
