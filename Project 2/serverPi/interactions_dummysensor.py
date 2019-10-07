@@ -7,16 +7,26 @@ import time
 import datetime
 import MySQLdb
 
+import tornado.httpserver
+import tornado.websocket
+import tornado.ioloop
+import tornado.web
+import socket
+
 from PyQt5 import QtCore, QtGui, QtWidgets #works for PyQt5
 from integrated import Ui_Form #note the capitalization
-from tornado_websocket.py import WSHandler
+#from tornado_websocket.py import WSHandler
 
-conn = MySQLdb.connect(host= "localhost",user= "EID",passwd="EID",db="mysql")
+conn = MySQLdb.connect(host= "localhost",user= "EID",passwd="EID",db="TEMP")
 c=conn.cursor()
 
 # Websocket class - handle behaviors specifically for transmitting temp/humidity data
-class PythonWS(WSHandler):
-    self.source = Form() # UI with data to send/receive
+class WSHandler(tornado.websocket.WebSocketHandler):
+    def open(self):
+        print('new connection')
+        self.source = Form() # UI with data to send/receive
+#class PythonWS(WSHandler):
+    
     def on_message(self, message):
         print('message received:  %s' % message)
         if message == "read":
