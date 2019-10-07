@@ -39,7 +39,7 @@
         <div id="error">
         </div>
       </div>
-      <div class="column middle" id="connected">
+      <div class="column middle">
         <h2>Test</h2>
         <div id="message_details">
             <label for="message">message:</label>
@@ -64,11 +64,29 @@
       </div>
       <div class="column right" id="display">
         <div id="sensor">
+          <h3>Sensor</h3>
+          <label for="currTemp">Current temperature:</label>
+          <input type="number" readonly="true" value="0">
+          <label for="currHum">Current temperature:</label>
+          <input type="number" readonly="true" value="0">
         </div>
         <div id="getSQL">
+          <h3>Database</h3>
+          <label for="currTemp">Recorded temperature:</label>
+          <input type="number" readonly="true" value="0">
+          <label for="currHum">Recorded temperature:</label>
+          <input type="number" readonly="true" value="0">
         </div>
+        <div id="units"></div>
         <div id="network">
+          <h3>Latency Test</h3>
         </div>
+        <div id="graph">
+          <h3>Graphs</h3>
+          <div id="tempGraph"></div>
+          <div id="humGraph"></div>
+        </div>
+        <h4>Terminal</h4>
         <div id="terminal">
         </div>
       </div>

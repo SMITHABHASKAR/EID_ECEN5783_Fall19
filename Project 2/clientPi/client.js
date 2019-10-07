@@ -12,30 +12,65 @@
       CtoF = function(temp_c) {
         return temp_c*9/5 + 32
       }
+
+      // source: https://www.w3schools.com/php/php_ajax_database.asp
+      // function showTable(str) {
+      //   if (str == "") {
+      //     document.getElementById("network").innerHTML = "";
+      //     return;
+      //   } else {
+      //     if (window.XMLHttpRequest) {
+      //         // code for IE7+, Firefox, Chrome, Opera, Safari
+      //         xmlhttp = new XMLHttpRequest();
+      //     } else {
+      //         // code for IE6, IE5
+      //         xmlhttp = new ActiveXObject("Microsoft.XMLHTTP");
+      //     }
+      //     xmlhttp.onreadystatechange = function() {
+      //         if (this.readyState == 4 && this.status == 200) {
+      //             document.getElementById("network").innerHTML = this.responseText;
+      //         }
+      //     };
+      //     xmlhttp.open("GET","tables.php?q="+str,true);
+      //     xmlhttp.send();
+      //   }
+      // }
  
       $(document).ready(function () {
         $("div#connected").hide()
+
+        //https://medium.com/programmers-developers/convert-blob-to-string-in-javascript-944c15ad7d52
+        const reader = new FileReader();
  
         var ws, ws2;
         var wsopen = false;
         var ws2open = false;
         var mode = "F";
 
+        $("div#units").html("Displaying temp in degrees " + mode);
+
+        function startTable() {
+          var html = ''
+            for (var i = 0; i < data.length; i++){
+                // We store html as a var then add to DOM after for efficiency
+                html += '<li>' + data[i].note + '</li>'
+            }
+            $('#graph').html(html)
+          }
  
         $("#open").click(function(evt) {
           evt.preventDefault();
  
           var host = $("#host").val();
           var port = $("#port").val();
-          var uri = $("#uri").val();
+          var uri = "/ws";
  
           // create websocket instance
           ws = new WebSocket("ws://" + host + ":" + port + uri);
            
           // Handle incoming websocket message callback
           ws.onmessage = function(evt) {
-            log("Message Received: " + evt.data)
-            alert("message received: " + evt.data);
+            log("Message Received: " + evt.data.toString());
             };
  
           // Close Websocket callback
@@ -46,7 +81,7 @@
             $("#port").css("background", "#ff0000"); 
             $("#uri").css("background",  "#ff0000");
             $("div#connected").empty();
- 
+            $("#open").attr("disabled", false);
             };
  
           // Open Websocket callback
@@ -70,15 +105,22 @@
  
           var host = $("#host2").val();
           var port = $("#port2").val();
-          var uri = $("#uri2").val();
+          var uri = "/ws";
  
           // create websocket instance
           ws2 = new WebSocket("ws://" + host + ":" + port + uri);
            
           // Handle incoming websocket message callback
           ws2.onmessage = function(evt) {
-            log("Message Received: " + evt.data)
-            alert("message received: " + evt.data);
+            log("Message Received: " + evt.data.toString());
+
+            //if (typeof evt.data == "Blob") {
+            //   console.log("Received image, converting...");
+            //   // Use createObjectURL to make a URL for the blob
+            //   var image = new Image();
+            //   image.src = URL.createObjectURL(evt.data);
+            //   document.getElementById('graph').appendChild(image);
+            // //}
             };
  
           // Close Websocket callback
@@ -89,7 +131,7 @@
             $("#port2").css("background", "#ff0000"); 
             $("#uri2").css("background",  "#ff0000");
             //$("div#message_details").empty();
- 
+            $("#open2").attr("disabled", false);
             };
  
           // Open Websocket callback
@@ -132,13 +174,20 @@
 
         // Get latest MySQL entry
         $("#switch").click(function(evt) {
-          ws.send("switch");
-          ws2.send("switch");
+          //ws.send("switch");
+          //ws2.send("switch");
+          if (mode == "F") {
+            mode = "C";
+          } else if (mode == "C") {
+            mode = "F";
+          }
+          $("div#units").html("Displaying temp in degrees " + mode);
         });
  
-        // Get latest MySQL entry
+        // Test network latency
         $("#network").click(function(evt) {
-          ws.send("network");
+          //ws.send("network");
           ws2.send("network");
+          startTable();
         });
       });

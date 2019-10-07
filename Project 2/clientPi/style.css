@@ -26,17 +26,25 @@ button {
 
 .column {
 	float: left;
-	padding: 50px;
+	margin-left: 50px;
 }
 
 .left {
-	width: 30%;
+	width: 25%;
+	padding: 10px;
 }
 
 .middle {
-	width: 25%;
+	width: 20%;
+	padding: 10px;
 }
 
 .right {
-	width: 45%;
+	width: 35%;
+	padding: 10px;
+}
+
+#sensor input, #getSQL input {
+	width: 50px;
+	background-color: #EEEEEE;
 }
