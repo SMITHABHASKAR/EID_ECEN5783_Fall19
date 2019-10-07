@@ -53,16 +53,17 @@
         	<button type="submit" id="read" value="read">Read Sensor</button>
         </div>
         <div id="latestStored">
-        	<button type="submit" id="latestStored" value="get">Get Latest Stored Reading</button> 
+        	<button type="submit" id="get" value="get">Get Latest Stored Reading</button> 
         </div>
         <div id="convertFC">
-        	<button type="submit" id="convertFC" value="switch">Switch F/C</button>
+        	<button type="submit" id="switch" value="switch">Switch F/C</button>
         </div>
         <div id="network">
         	<button type="submit" id="network" value="network">Test Network</button>
         </div>
       </div>
       <div class="column right" id="display">
+        <div id="units"></div>
         <div id="sensor">
           <h3>Sensor</h3>
           <label for="currTemp">Current temperature:</label>
@@ -77,7 +78,6 @@
           <label for="currHum">Recorded temperature:</label>
           <input type="number" readonly="true" value="0">
         </div>
-        <div id="units"></div>
         <div id="network">
           <h3>Latency Test</h3>
         </div>

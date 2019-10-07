@@ -55,7 +55,7 @@
                 // We store html as a var then add to DOM after for efficiency
                 html += '<li>' + data[i].note + '</li>'
             }
-            $('#graph').html(html)
+            $('#network').html(html)
           }
  
         $("#open").click(function(evt) {
@@ -172,8 +172,9 @@
           ws2.send("get");
         });
 
-        // Get latest MySQL entry
+        // Switch units between F and C
         $("#switch").click(function(evt) {
+          console.log("converting");
           //ws.send("switch");
           //ws2.send("switch");
           if (mode == "F") {
