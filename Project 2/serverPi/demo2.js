@@ -48,6 +48,25 @@ const server = http.createServer((req, res)=>{
   });
 });
 
+// create Websocket on the HTTP server
+const wss = new Websocket.Server({ server });
+
+// define behaviors for Websocket
+wss.on('connection', function connection(ws) {
+  ws.on('message', function incoming(message) {
+    console.log('received: %s', message);
+    if (message == 'get') {
+      // get latest sensor reading stored in MySQL
+      console.log('getting latest stored reading');
+      ws.send('sensor says');
+    }
+    if (message == 'network') {
+      console.log('testing network latency');
+      ws.send('network');
+    }
+  });
+});
+
 server.listen(8080, ()=>{
   console.log('Server running at //localhost:8080/');
 });

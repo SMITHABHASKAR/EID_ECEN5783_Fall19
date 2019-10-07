@@ -1,4 +1,5 @@
 # code from: https://os.mbed.com/cookbook/Websockets-Server
+# file added by: Shanel Wu
 
 import tornado.httpserver
 import tornado.websocket
@@ -15,17 +16,6 @@ Messages are output to the terminal for debuggin purposes.
 class WSHandler(tornado.websocket.WebSocketHandler):
     def open(self):
         print('new connection')
-      
-    def on_message(self, message):
-        print('message received:  %s' % message)
-        # Reverse Message and send it back
-        # add any request types here
-        if message == "dataplease":
-            print('received a data request for sensor')
-            self.write_message("No data for you!")
-        else: 
-            print('sending back message: %s' % message[::-1])
-            self.write_message(message[::-1])
 
     # def on_request(self, request):
     #     print('request received: %s' % request)

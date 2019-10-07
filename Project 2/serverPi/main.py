@@ -1,8 +1,8 @@
-import sys, os
+import sys, os, tornado
 from PyQt5.QtWidgets import QDialog, QApplication # case sensitive!
 from integrated import *
 from interactions import *
-import tornado_websocket
+from tornado_websocket import *
 
 class AppWindow(QDialog):
     def __init__(self): 
@@ -14,10 +14,15 @@ class AppWindow(QDialog):
 app = QApplication(sys.argv)
 w = Form()
 w.show()
-sys.exit(app.exec_())
+
+application = tornado.web.Application([
+    (r'/ws', PythonWS),
+])
 
 http_server = tornado.httpserver.HTTPServer(application)
-    http_server.listen(8888)
-    myIP = socket.gethostbyname(socket.gethostname())
-    print('*** Websocket Server Started at %s***' % myIP)
-    tornado.ioloop.IOLoop.instance().start()
+http_server.listen(8888)
+myIP = socket.gethostbyname(socket.gethostname())
+print('*** Websocket Server Started at %s***' % myIP)
+tornado.ioloop.IOLoop.instance().start()
+
+sys.exit(app.exec_())

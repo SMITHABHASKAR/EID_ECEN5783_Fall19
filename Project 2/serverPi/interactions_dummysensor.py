@@ -9,12 +9,31 @@ import MySQLdb
 
 from PyQt5 import QtCore, QtGui, QtWidgets #works for PyQt5
 from integrated import Ui_Form #note the capitalization
-from tornado_websocket.py import *
+from tornado_websocket.py import WSHandler
 
 conn = MySQLdb.connect(host= "localhost",user= "EID",passwd="EID",db="mysql")
 c=conn.cursor()
 
-# main UI class
+# Websocket class - handle behaviors specifically for transmitting temp/humidity data
+class PythonWS(WSHandler):
+    self.source = Form() # UI with data to send/receive
+    def on_message(self, message):
+        print('message received:  %s' % message)
+        if message == "read":
+            print('received a remote data request for sensor')
+            self.source.button_pressed(); # treat like a button press
+            self.write_message(str(self.ui.status.text())) # just send the status line
+        if message == "switch":
+            print('received remote request to convert F/C')
+            self.source.toggleFC()
+        if message == "network":
+            print('received remote request for last 10 MySQL entries')
+            
+        else: 
+            print('unknown command')
+            self.write_message('Python: I do not know what to do with that')
+
+# main UI class - from Project 1
 class Form(Ui_Form):
     # initialize function: set all tracked variables and start 15 second looped timer
     def __init__ (self, parent = None):
