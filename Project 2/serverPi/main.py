@@ -16,7 +16,7 @@ w = Form()
 w.show()
 
 application = tornado.web.Application([
-    (r'/ws', PythonWS),
+    (r'/ws', WSHandler),
 ])
 
 http_server = tornado.httpserver.HTTPServer(application)

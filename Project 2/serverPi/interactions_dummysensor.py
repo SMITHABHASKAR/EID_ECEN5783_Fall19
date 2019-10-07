@@ -14,8 +14,8 @@ import tornado.web
 import socket
 
 from PyQt5 import QtCore, QtGui, QtWidgets #works for PyQt5
+from PyQt5.QtCore import pyqtSignal
 from integrated import Ui_Form #note the capitalization
-#from tornado_websocket.py import WSHandler
 
 conn = MySQLdb.connect(host= "localhost",user= "EID",passwd="EID",db="TEMP")
 c=conn.cursor()
@@ -24,8 +24,6 @@ c=conn.cursor()
 class WSHandler(tornado.websocket.WebSocketHandler):
     def open(self):
         print('new connection')
-        self.source = Form() # UI with data to send/receive
-#class PythonWS(WSHandler):
     
     def on_message(self, message):
         print('message received:  %s' % message)
@@ -35,13 +33,20 @@ class WSHandler(tornado.websocket.WebSocketHandler):
             self.write_message(str(self.ui.status.text())) # just send the status line
         if message == "switch":
             print('received remote request to convert F/C')
-            self.source.toggleFC()
         if message == "network":
             print('received remote request for last 10 MySQL entries')
-            
         else: 
             print('unknown command')
             self.write_message('Python: I do not know what to do with that')
+
+class WebSocket(QtCore.QThread):
+    read = pyqtSignal()
+    network = pyqtSignal()
+
+    toSend = "";
+
+    self.ws = WSHandler()
+    self.ws.on_message
 
 # main UI class - from Project 1
 class Form(Ui_Form):
@@ -50,6 +55,9 @@ class Form(Ui_Form):
         super(Form, self).__init__ ()
         self.ui = Ui_Form()
         self.ui.setupUi(self)
+
+        self.wsthread = WebSocket()
+        self.wsthread.moveToThread(self.wsthread)
 
         # initialize values to track
         self.count = 0 # value of progress bar
