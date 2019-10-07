@@ -1,0 +1,18 @@
+body {
+	text-align: center;
+	min-width: 500px;
+}
+
+/* from https://www.w3schools.com/howto/howto_css_two_columns.asp */
+
+.column {
+	float: left;
+	width: 50%;
+}
+
+/* Clear floats after the columns */
+.row:after {
+	content: "";
+	display: table;
+	clear: both;
+}
