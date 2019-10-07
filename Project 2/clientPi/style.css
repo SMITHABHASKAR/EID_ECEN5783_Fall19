@@ -1,18 +1,42 @@
 body {
+	font-family: "Helvetica", "Helvetica Neue", sans-serif;
+}
+
+h1 {
 	text-align: center;
-	min-width: 500px;
+}
+
+input {
+	margin: 5px;
+	padding: 5px;
+	border-radius: 5px;
+}
+
+button {
+	display: block;
+	margin-left: auto;
+	margin-right: auto;
+	margin-top: 5px;
+	margin-bottom: 5px;
+	padding: 10px;
+	border-radius: 5px;
 }
 
 /* from https://www.w3schools.com/howto/howto_css_two_columns.asp */
 
 .column {
 	float: left;
-	width: 50%;
+	padding: 50px;
 }
 
-/* Clear floats after the columns */
-.row:after {
-	content: "";
-	display: table;
-	clear: both;
+.left {
+	width: 30%;
+}
+
+.middle {
+	width: 25%;
+}
+
+.right {
+	width: 45%;
 }

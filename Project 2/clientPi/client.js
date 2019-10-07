@@ -1,14 +1,26 @@
 
       // log function
-      log = function(data){
+      log = function(data) {
         $("div#terminal").prepend("</br>" +data);
         console.log(data);
       };
+
+      // temperature converting functions
+      FtoC = function(temp_f) {
+        return (temp_f - 32)*5/9
+      }
+      CtoF = function(temp_c) {
+        return temp_c*9/5 + 32
+      }
  
       $(document).ready(function () {
         $("div#connected").hide()
  
         var ws, ws2;
+        var wsopen = false;
+        var ws2open = false;
+        var mode = "F";
+
  
         $("#open").click(function(evt) {
           evt.preventDefault();
@@ -42,8 +54,14 @@
             $("#host").css("background", "#00ff00"); 
             $("#port").css("background", "#00ff00"); 
             $("#uri").css("background", "#00ff00");
-            $("div#connected").show();
-            log("***Connection Opened***");
+            log("***Connection 1 Opened***");
+            $("#open").attr("disabled", true);
+
+            wsopen = true;
+            if (ws2open) {
+              $("div#connected").show();
+              log("**Both Connections Now Available**");
+            }
           };
         });
 
@@ -79,8 +97,14 @@
             $("#host2").css("background", "#00ff00"); 
             $("#port2").css("background", "#00ff00"); 
             $("#uri2").css("background", "#00ff00");
-            //$("div#message_details").show();
-            log("***Connection Opened***");
+            log("***Connection 2 Opened***");
+            $("#open2").attr("disabled", true);
+
+            ws2open = true;
+            if (wsopen) {
+              $("div#connected").show();
+              log("**Both Connections Now Available**"); 
+            }
           };
         });
  
