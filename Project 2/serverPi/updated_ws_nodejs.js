@@ -1,3 +1,5 @@
+// Author(s): Smitha Bhaskar and Shanel Wu
+
 const WebSocket = require('ws');
 var mysql = require('mysql');
 

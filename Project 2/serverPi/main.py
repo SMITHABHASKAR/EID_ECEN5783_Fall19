@@ -1,3 +1,4 @@
+# Author(s): Shanel Wu 
 import sys, os, tornado
 from PyQt5.QtWidgets import QDialog, QApplication # case sensitive!
 from integrated import *

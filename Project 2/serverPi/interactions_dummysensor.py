@@ -1,3 +1,5 @@
+# Author(s): Smitha Bhaskar and Shanel Wu
+
 # code modified from https://stackoverflow.com/questions/20873259/pyqt-how-to-dynamically-update-widget-property-on-outer-variable-value-change
 import matplotlib.pyplot as plt
 import random
