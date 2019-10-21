@@ -1,3 +1,6 @@
+// Original code source: https://github.com/websockets/ws
+// File added by: Shanel Wu
+
 const WebSocket = require('ws');
 
 const wss = new WebSocket.Server({ port: 8080 });

@@ -1,3 +1,5 @@
+// Author(s): Smitha Bhaskar
+
 const http = require('http');
 const mysql = require('mysql');
 const WebSocket = require('ws');

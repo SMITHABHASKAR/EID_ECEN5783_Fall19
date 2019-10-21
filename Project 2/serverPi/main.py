@@ -1,3 +1,4 @@
+# Author(s): Shanel Wu 
 import sys, os, tornado
 from PyQt5.QtWidgets import QDialog, QApplication # case sensitive!
 from integrated import *
@@ -34,7 +35,11 @@ QTApp = QApplication(sys.argv)
 w = Form()
 w.show()
 
+<<<<<<< HEAD
 tornadoApp = tornado.web.Application([
+=======
+application = tornado.web.Application([
+>>>>>>> 982c288f5341f8ea621722cdaa7228c0a337031b
     (r'/ws', WSHandler),
 ])
 

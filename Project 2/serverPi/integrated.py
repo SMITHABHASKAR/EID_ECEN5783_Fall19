@@ -1,3 +1,4 @@
+# Author(s): Shanel Wu 
 # -*- coding: utf-8 -*-
 
 # Form implementation generated from reading ui file 'bestThermostat.ui'

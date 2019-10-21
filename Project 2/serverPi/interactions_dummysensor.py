@@ -1,3 +1,5 @@
+# Author(s): Smitha Bhaskar and Shanel Wu
+
 # code modified from https://stackoverflow.com/questions/20873259/pyqt-how-to-dynamically-update-widget-property-on-outer-variable-value-change
 import matplotlib.pyplot as plt
 import random
@@ -7,19 +9,59 @@ import time
 import datetime
 import MySQLdb
 
-from PyQt5 import QtCore, QtGui, QtWidgets #works for PyQt5
-from integrated import Ui_Form #note the capitalization
-from tornado_websocket import WSHandler
+import tornado.httpserver
+import tornado.websocket
+import tornado.ioloop
+import tornado.web
+import socket
 
-conn = MySQLdb.connect(host= "localhost",user= "EID",passwd="EID",db="mysql")
+from PyQt5 import QtCore, QtGui, QtWidgets #works for PyQt5
+from PyQt5.QtCore import pyqtSignal
+from integrated import Ui_Form #note the capitalization
+<<<<<<< HEAD
+from tornado_websocket import WSHandler
+=======
+>>>>>>> 982c288f5341f8ea621722cdaa7228c0a337031b
+
+conn = MySQLdb.connect(host= "localhost",user= "EID",passwd="EID",db="TEMP")
 c=conn.cursor()
 
 # Websocket class - handle behaviors specifically for transmitting temp/humidity data
+<<<<<<< HEAD
 class PythonWS(WSHandler):
     def on_message(self, message):
         print('message received:  %s' % message)
         return message
     
+=======
+class WSHandler(tornado.websocket.WebSocketHandler):
+    def open(self):
+        print('new connection')
+    
+    def on_message(self, message):
+        print('message received:  %s' % message)
+        if message == "read":
+            print('received a remote data request for sensor')
+            self.source.button_pressed(); # treat like a button press
+            self.write_message(str(self.ui.status.text())) # just send the status line
+        if message == "switch":
+            print('received remote request to convert F/C')
+        if message == "network":
+            print('received remote request for last 10 MySQL entries')
+        else: 
+            print('unknown command')
+            self.write_message('Python: I do not know what to do with that')
+
+class WebSocket(QtCore.QThread):
+    read = pyqtSignal()
+    network = pyqtSignal()
+
+    toSend = "";
+
+    self.ws = WSHandler()
+    self.ws.on_message
+
+>>>>>>> 982c288f5341f8ea621722cdaa7228c0a337031b
 # main UI class - from Project 1
 class Form(Ui_Form):
     # initialize function: set all tracked variables and start 15 second looped timer
@@ -30,6 +72,9 @@ class Form(Ui_Form):
         
         #start websocket server
         self.ws = PythonWS()
+
+        self.wsthread = WebSocket()
+        self.wsthread.moveToThread(self.wsthread)
 
         # initialize values to track
         self.count = 0 # value of progress bar

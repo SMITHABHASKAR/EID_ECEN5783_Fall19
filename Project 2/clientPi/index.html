@@ -1,4 +1,6 @@
 <!-- index.html
+  Original code source: https://os.mbed.com/cookbook/Websockets-Server
+  Modified by: Shanel Wu
 	-->
 <!DOCTYPE html>
 <html lang="">
@@ -39,7 +41,7 @@
         <div id="error">
         </div>
       </div>
-      <div class="column middle" id="connected">
+      <div class="column middle">
         <h2>Test</h2>
         <div id="message_details">
             <label for="message">message:</label>
@@ -53,22 +55,40 @@
         	<button type="submit" id="read" value="read">Read Sensor</button>
         </div>
         <div id="latestStored">
-        	<button type="submit" id="latestStored" value="get">Get Latest Stored Reading</button> 
+        	<button type="submit" id="get" value="get">Get Latest Stored Reading</button> 
         </div>
         <div id="convertFC">
-        	<button type="submit" id="convertFC" value="switch">Switch F/C</button>
+        	<button type="submit" id="switch" value="switch">Switch F/C</button>
         </div>
         <div id="network">
-        	<button type="submit" id="network" value="network">Test Network</button>
+        	<a href="http://128.138.189.237:8081"><button type="submit" id="network" value="network">Test Network</button></a>
         </div>
       </div>
       <div class="column right" id="display">
+        <div id="units"></div>
         <div id="sensor">
+          <h3>Sensor</h3>
+          <label for="currTemp">Current temperature:</label>
+          <input type="number" readonly="true" value="0">
+          <label for="currHum">Current temperature:</label>
+          <input type="number" readonly="true" value="0">
         </div>
         <div id="getSQL">
+          <h3>Database</h3>
+          <label for="currTemp">Recorded temperature:</label>
+          <input type="number" readonly="true" value="0">
+          <label for="currHum">Recorded temperature:</label>
+          <input type="number" readonly="true" value="0">
         </div>
-        <div id="network">
+        <div id="storage">
+          <a href="http://128.138.189.237:8081"><h3>Latency Test</h3></a>
         </div>
+        <div id="graph">
+          <h3>Graphs</h3>
+          <div id="tempGraph"></div>
+          <div id="humGraph"></div>
+        </div>
+        <h4>Terminal</h4>
         <div id="terminal">
         </div>
       </div>

@@ -1,5 +1,5 @@
-# code from: https://os.mbed.com/cookbook/Websockets-Server
-# file added by: Shanel Wu
+# Original code source: https://os.mbed.com/cookbook/Websockets-Server
+# Modified by: Shanel Wu
 
 import tornado.httpserver
 import tornado.websocket
