@@ -13,6 +13,8 @@ AWS.config.credentials = new AWS.CognitoIdentityCredentials({
     IdentityPoolId: 'us-west-2:d4b53238-567d-4e08-88cf-724393cf23cd',
 });
 
+var queueURL = 'https://sqs.us-west-2.amazonaws.com/729220473028/EID_Project3';
+
 // log function
 log = function(data) {
   $("div#terminal").prepend("</br>" + data);
@@ -39,37 +41,112 @@ $(document).ready(function () {
   var header = "";
   var rows = [];
   var count = 0;
+
+  var paramsReceive = {
+    QueueUrl: queueURL, // required
+    AttributeNames: [ "All" ], // array [ name1 | name 2 | ... ]
+    MaxNumberOfMessages: 10,
+    MessageAttributeNames: [ "All" ],
+    WaitTimeSeconds: 20
+  };
+
+  var paramsDelete = {
+    QueueUrl: queueURL,
+    ReceiptHandle: ""
+  }
+
+  var paramsQueue = {
+    QueueUrl: queueURL,
+    AttributeNames: [ "All" ]    
+  }
+  
+  // create JSON parameters for receiving messages from AWS SQS
+  SQSConnect();
+  var receivedMessage = SQSReceive();
   startTable();
 
   //$("h4#units").html("Displaying temp in degrees " + mode);
 
   function SQSConnect() {
-    // create JSON parameters for receiving messages from AWS SQS
-    var readParams = {
-      QueueUrl: 'STRING_VALUE', // required
-      AttributeNames: [ "All" ], // array [ name1 | name 2 | ... ]
-      MaxNumberOfMessages: 1,
-      MessageAttributeNames: [ "All" ],
-      WaitTimeSeconds: 0
-    };
-
-    // fill in params from user input
-
     // create the SQS service object
     sqs = new AWS.SQS();
+  }
 
+  function SQSReceive() {
     // get data from SQS and display it on the webpage
-    sqs.receiveMessage(params, function(err, data) {
+    // then delete it to avoid duplicates
+    sqs.receiveMessage(paramsReceive, function(err, data) {
       if (err) {
-        console.log(err, err.stack);  // error occured
+        log( [err, err.stack] );  // error occured
         connected = false;
+        $("#aws").css("background", "#ff0000");
+        $("#aws").attr("readonly", "false");
+        $("#open").attr("disabled", "false");
       } else {
-        console.log(data);            // success
+        log(data);            // success
         connected = true;
-    }});
+        $("#aws").css("background", "#00ff00");
+        $("#aws").attr("value", "Connected!");
+        $("#aws").attr("readonly", "true");
+        $("#open").attr("disabled", "true");
 
+        message = data.Messages[0];
+        parsed = parseMessage(message);
+        log(parsed);
+
+        paramsDelete.ReceiptHandle = message.ReceiptHandle;
+        sqs.deleteMessage(paramsDelete, function(err, data) {
+          if (err) {
+            console.log(err, err.stack); // an error occurred
+          } else { 
+            console.log("Message deleted");
+            console.log(data);           // successful response
+          }
+        });
+
+        updateTable(parsed); // JSON object
+    }});
+  }
+
+  function SQSQueue() {
     // if doing extra credit, use getQueueAttributes
     // queue attribute (also available from received messages) - ApproximateNumberOfMessages
+    var queueCount = 0;
+    
+    sqs.getQueueAttributes(paramsQueue, function(err, data) {
+      if (err) {
+        log( [err, err.stack] );  // error occured
+        connected = false;
+        $("#aws").css("background", "#ff0000");
+        $("#aws").attr("readonly", "false");
+        $("#open").attr("disabled", "false");
+      } else {
+        log(data);            // success
+        queueCount = data.Attributes.ApproximateNumberOfMessages;
+        log(queueCount);
+
+        connected = true;
+        $("#aws").css("background", "#00ff00");
+        $("#aws").attr("value", "Connected!");
+        $("#aws").attr("readonly", "true");
+        $("#open").attr("disabled", "true");
+      }
+    });
+
+    return queueCount;
+  }
+
+  function parseMessage(message) {
+    var contents = {
+      body: message.Body,
+      // rowData: {
+      //   dateandtime: message.Body.data.dateandtime,
+      //   TEMPERATUREinC: message.Body.data.TEMPERATUREinC,
+      //   TEMPERATUREinF: message.Body.data.TEMPERATUREinF,
+      //   HUMIDITY: message.Body.data.HUMIDITY
+      // }
+    };
+    return JSON.parse(contents.body); // .keyName
   }
 
   function startTable() {
@@ -81,17 +158,20 @@ $(document).ready(function () {
     $('#feed').html(header + rows.join('') + '</table>');
   }
 
-  function updateTable() {
-    count++;
-    var newRow = '<tr><td>' + count + '</td><td>' + '0' + '</td><td>' + '' + '</td><td>' + '' + '</td></tr>';
-    
-    if (count <= 20) {
-      rows[count-1] = newRow; // keep filling the table
-    } else {
-      rows.shift(); // remove oldest entry
-      rows.push(newRow);
+  function updateTable(record) {
+    var newEntry = record;
+    if (newEntry != "Sensor values above threshold") {
+      count++;
+      var newRow = '<tr><td>' + count + '</td><td>' + newEntry.TemperatureinC + '</td><td>' + '' + '</td><td>' + newEntry.Humidity + '</td></tr>';
+      
+      if (count <= 20) {
+        rows[count-1] = newRow; // keep filling the table
+      } else {
+        rows.shift(); // remove oldest entry
+        rows.push(newRow);
+      }
+      $('#feed').html(header + rows.join('') + '</table>');
     }
-    $('#feed').html(header + rows.join('') + '</table>');
   }
 
   $("#open").click(function(evt) {
@@ -137,12 +217,14 @@ $(document).ready(function () {
 
   // Get one SQS record
   $("#getOne").click(function(evt) {
-    updateTable();
+    receivedMessage = SQSReceive();
   });
 
   // Get all SQS records in queue
   $("#getAll").click(function(evt) {
-    
+    for (i = 0; i < 20; i++) {
+      receivedMessage = SQSReceive();
+    }
   });
 
   // Show number of records in SQS Queue
@@ -154,6 +236,9 @@ $(document).ready(function () {
         '<label for="queueNum">Queue: </label>' +
         '<input id="queueNum" type="text" readonly="true" value="0 records">')
       $("span#queueCount").show()
+      var queueNum = SQSQueue();
+      log(queueNum);
+      $('input#queueNum').attr("value", queueNum + " records");
       $("button#queue").html("Hide Queue Count");
     } else {
       $("span#queueCount").hide()
