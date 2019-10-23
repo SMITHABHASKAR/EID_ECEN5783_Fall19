@@ -1,9 +1,20 @@
-// Original code source: https://os.mbed.com/cookbook/Websockets-Server
-// Modified by: Shanel Wu
+/*  
+Code sources: 
+-   WebSockets Server example - https://os.mbed.com/cookbook/Websockets-Server
+-   SQS API for JavaScript - https://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/SQS.html
+-   AWS Browser Script w/ JS, unauth users, and 1 other service - https://docs.aws.amazon.com/sdk-for-javascript/v2/developer-guide/getting-started-browser.html
+Modified by: Shanel Wu
+*/
+
+// Initialize the Amazon Cognito credentials provider
+AWS.config.region = 'us-west-2'; // Region
+AWS.config.credentials = new AWS.CognitoIdentityCredentials({
+    IdentityPoolId: 'us-west-2:d4b53238-567d-4e08-88cf-724393cf23cd',
+});
 
 // log function
 log = function(data) {
-  $("div#terminal").prepend("</br>" +data);
+  $("div#terminal").prepend("</br>" + data);
   console.log(data);
 };
 
@@ -16,161 +27,113 @@ CtoF = function(temp_c) {
 }
 
 $(document).ready(function () {
-  $("div#connected").hide()
+  //$("div#connected").hide()
 
-  //https://medium.com/programmers-developers/convert-blob-to-string-in-javascript-944c15ad7d52
-  const reader = new FileReader();
-
-  var ws, ws2;
-  var wsopen = false;
-  var ws2open = false;
+  var connected = false;
   var mode = "F";
+  startTable();
 
-  $("div#units").html("Displaying temp in degrees " + mode);
+  $("h4#units").html("Displaying temp in degrees " + mode);
+
+  function SQSRead() {
+    // create JSON parameters for receiving messages from AWS SQS
+    var readParams = {
+      QueueUrl: 'STRING_VALUE', // required
+      AttributeNames: [], // array [ name1 | name 2 | ... ]
+      MaxNumberOfMessages: 1,
+      MessageAttributeNames: [],
+      ReceiveRequestAttemptId: 'STRING_VALUE',
+      VisibilityTimeout: 100,
+      WaitTimeSeconds: 15
+    };
+
+    // fill in params from user input
+
+    // create the SQS service object
+    var sqs = new AWS.SQS();
+
+    // get data from SQS and display it on the webpage
+    sqs.receiveMessage(params, function(err, data) {
+      if (err) {
+        console.log(err, err.stack);  // error occured
+        connected = false;
+      } else {
+        console.log(data);            // success
+        connected = true;
+    }});
+
+    // if doing extra credit, use queue get attributes?
+  }
 
   function startTable() {
-    var html = ''
-      for (var i = 0; i < data.length; i++){
-          // We store html as a var then add to DOM after for efficiency
-          html += '<li>' + data[i].note + '</li>'
-      }
-      $('#network').html(html)
+    var html = '<table><tr><th>Date/Time</th><th>Temperature in C</th><th>Temperature in F</th><th>Humidity</th></tr>';
+    for (var i = 0; i < 20; i++){
+        // We store html as a var then add to DOM after for efficiency
+        html += '<tr><td>' + 0 + '</td><td>' + 0 + '</td><td>' + 0 + '</td><td>' + 0 + '</td></tr>';
     }
+    html += '</table>';
+    $('#feed').html(html);
+  }
 
   $("#open").click(function(evt) {
     evt.preventDefault();
 
-    var host = $("#host").val();
-    var port = $("#port").val();
-    var uri = "/ws";
+    // var host = $("#host").val();
+    // var port = $("#port").val();
+    // var uri = "/ws";
 
-    // create websocket instance
-    ws = new WebSocket("ws://" + host + ":" + port + uri);
+    // // create websocket instance
+    // ws = new WebSocket("ws://" + host + ":" + port + uri);
      
-    // Handle incoming websocket message callback
-    ws.onmessage = function(evt) {
-      log("Message Received: " + evt.data.toString());
-      };
+    // // Handle incoming websocket message callback
+    // ws.onmessage = function(evt) {
+    //   log("Message Received: " + evt.data.toString());
+    //   };
 
-    // Close Websocket callback
-    ws.onclose = function(evt) {
-      log("***Connection Closed***");
-      alert("Connection close");
-      $("#host").css("background", "#ff0000"); 
-      $("#port").css("background", "#ff0000"); 
-      $("#uri").css("background",  "#ff0000");
-      $("div#connected").empty();
-      $("#open").attr("disabled", false);
-      };
+    // // Close Websocket callback
+    // ws.onclose = function(evt) {
+    //   log("***Connection Closed***");
+    //   alert("Connection close");
+    //   $("#host").css("background", "#ff0000"); 
+    //   $("#port").css("background", "#ff0000"); 
+    //   $("#uri").css("background",  "#ff0000");
+    //   $("div#connected").empty();
+    //   $("#open").attr("disabled", false);
+    //   };
 
-    // Open Websocket callback
-    ws.onopen = function(evt) { 
-      $("#host").css("background", "#00ff00"); 
-      $("#port").css("background", "#00ff00"); 
-      $("#uri").css("background", "#00ff00");
-      log("***Connection 1 Opened***");
-      $("#open").attr("disabled", true);
-
-      wsopen = true;
-      if (ws2open) {
-        $("div#connected").show();
-        log("**Both Connections Now Available**");
-      }
-    };
+    // // Open Websocket callback
+    // ws.onopen = function(evt) { 
+    //   $("#host").css("background", "#00ff00"); 
+    //   $("#port").css("background", "#00ff00"); 
+    //   $("#uri").css("background", "#00ff00");
+    //   log("***Connection 1 Opened***");
+    //   $("#open").attr("disabled", true);
+    // };
   });
 
-  $("#open2").click(function(evt) {
-    evt.preventDefault();
-
-    var host = $("#host2").val();
-    var port = $("#port2").val();
-    var uri = "/ws";
-
-    // create websocket instance
-    ws2 = new WebSocket("ws://" + host + ":" + port + uri);
-     
-    // Handle incoming websocket message callback
-    ws2.onmessage = function(evt) {
-      log("Message Received: " + evt.data.toString());
-
-      //if (typeof evt.data == "Blob") {
-      //   console.log("Received image, converting...");
-      //   // Use createObjectURL to make a URL for the blob
-      //   var image = new Image();
-      //   image.src = URL.createObjectURL(evt.data);
-      //   document.getElementById('graph').appendChild(image);
-      // //}
-      };
-
-    // Close Websocket callback
-    ws2.onclose = function(evt) {
-      log("***Connection Closed***");
-      alert("Connection close");
-      $("#host2").css("background", "#ff0000"); 
-      $("#port2").css("background", "#ff0000"); 
-      $("#uri2").css("background",  "#ff0000");
-      //$("div#message_details").empty();
-      $("#open2").attr("disabled", false);
-      };
-
-    // Open Websocket callback
-    ws2.onopen = function(evt) { 
-      $("#host2").css("background", "#00ff00"); 
-      $("#port2").css("background", "#00ff00"); 
-      $("#uri2").css("background", "#00ff00");
-      log("***Connection 2 Opened***");
-      $("#open2").attr("disabled", true);
-
-      ws2open = true;
-      if (wsopen) {
-        $("div#connected").show();
-        log("**Both Connections Now Available**"); 
-      }
-    };
-  });
-
-  // Send websocket message function
+  // Send message function (should be disabled with permissions for unauth user)
   $("#send").click(function(evt) {
-      log("Sending Message to WS 1: "+$("#message").val());
-      ws.send($("#message").val());
+    
   });
 
-  $("#send2").click(function(evt) {
-      log("Sending Message to WS 2: " +$("#message").val());
-      ws2.send($("#message").val());
-  })
-
-  // Poll sensor
-  $("#read").click(function(evt) {
-  	ws.send("read");
-  	//log("Sensor reads nonsense");
+  // Get one SQS record
+  $("#getOne").click(function(evt) {
+    
   });
 
-  // Get latest MySQL entry
-  $("#get").click(function(evt) {
-    ws2.send("get");
+  // Get all SQS records in queue
+  $("#getAll").click(function(evt) {
+    
   });
 
   // Switch units between F and C
   $("#switch").click(function(evt) {
-    console.log("converting");
-    //ws.send("switch");
-    //ws2.send("switch");
+    $("button#switch").html("Switch to " + mode);
     if (mode == "F") {
       mode = "C";
     } else if (mode == "C") {
       mode = "F";
     }
-    $("div#units").html("Displaying temp in degrees " + mode);
-  });
-
-  // Test network latency
-  $("#network").click(function(evt) {
-    //ws.send("network");
-    ws2.send("network");
-    //loadWholePage("128.138.189.237:8081");
-    //$.get("128.138.189.237:8081",function(data){ $("div#network").html(data); });
-    //$.ajax({ url: '128.138.189.237:8081', success: function(data) { $("div#network").html(data); } });
-    //loadXMLDoc();
+    $("h4#units").html("Displaying temp in degrees " + mode);
   });
 });
