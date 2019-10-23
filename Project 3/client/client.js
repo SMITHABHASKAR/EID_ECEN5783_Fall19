@@ -1,3 +1,4 @@
+/// <reference types="aws-sdk" />
 /*  
 Code sources: 
 -   WebSockets Server example - https://os.mbed.com/cookbook/Websockets-Server
@@ -31,26 +32,31 @@ $(document).ready(function () {
 
   var connected = false;
   var mode = "F";
+  var sqs;
+  var queueShow = false;
+
+  // tabular display data
+  var header = "";
+  var rows = [];
+  var count = 0;
   startTable();
 
-  $("h4#units").html("Displaying temp in degrees " + mode);
+  //$("h4#units").html("Displaying temp in degrees " + mode);
 
-  function SQSRead() {
+  function SQSConnect() {
     // create JSON parameters for receiving messages from AWS SQS
     var readParams = {
       QueueUrl: 'STRING_VALUE', // required
-      AttributeNames: [], // array [ name1 | name 2 | ... ]
+      AttributeNames: [ "All" ], // array [ name1 | name 2 | ... ]
       MaxNumberOfMessages: 1,
-      MessageAttributeNames: [],
-      ReceiveRequestAttemptId: 'STRING_VALUE',
-      VisibilityTimeout: 100,
-      WaitTimeSeconds: 15
+      MessageAttributeNames: [ "All" ],
+      WaitTimeSeconds: 0
     };
 
     // fill in params from user input
 
     // create the SQS service object
-    var sqs = new AWS.SQS();
+    sqs = new AWS.SQS();
 
     // get data from SQS and display it on the webpage
     sqs.receiveMessage(params, function(err, data) {
@@ -62,17 +68,30 @@ $(document).ready(function () {
         connected = true;
     }});
 
-    // if doing extra credit, use queue get attributes?
+    // if doing extra credit, use getQueueAttributes
+    // queue attribute (also available from received messages) - ApproximateNumberOfMessages
   }
 
   function startTable() {
-    var html = '<table><tr><th>Date/Time</th><th>Temperature in C</th><th>Temperature in F</th><th>Humidity</th></tr>';
+    header = '<table><tr><th>Date/Time</th><th>Temperature in C</th><th>Temperature in F</th><th>Humidity</th></tr>';
     for (var i = 0; i < 20; i++){
         // We store html as a var then add to DOM after for efficiency
-        html += '<tr><td>' + 0 + '</td><td>' + 0 + '</td><td>' + 0 + '</td><td>' + 0 + '</td></tr>';
+        rows.push('<tr><td>' + '-' + '</td><td>' + '' + '</td><td>' + '' + '</td><td>' + '' + '</td></tr>');
     }
-    html += '</table>';
-    $('#feed').html(html);
+    $('#feed').html(header + rows.join('') + '</table>');
+  }
+
+  function updateTable() {
+    count++;
+    var newRow = '<tr><td>' + count + '</td><td>' + '0' + '</td><td>' + '' + '</td><td>' + '' + '</td></tr>';
+    
+    if (count <= 20) {
+      rows[count-1] = newRow; // keep filling the table
+    } else {
+      rows.shift(); // remove oldest entry
+      rows.push(newRow);
+    }
+    $('#feed').html(header + rows.join('') + '</table>');
   }
 
   $("#open").click(function(evt) {
@@ -118,13 +137,29 @@ $(document).ready(function () {
 
   // Get one SQS record
   $("#getOne").click(function(evt) {
-    
+    updateTable();
   });
 
   // Get all SQS records in queue
   $("#getAll").click(function(evt) {
     
   });
+
+  // Show number of records in SQS Queue
+  $("#queue").click(function(evt) {
+    queueShow = !queueShow;
+
+    if (queueShow) {
+      $("span#queueCount").html(
+        '<label for="queueNum">Queue: </label>' +
+        '<input id="queueNum" type="text" readonly="true" value="0 records">')
+      $("span#queueCount").show()
+      $("button#queue").html("Hide Queue Count");
+    } else {
+      $("span#queueCount").hide()
+      $("button#queue").html("Show Queue Count");
+    }
+  })
 
   // Switch units between F and C
   $("#switch").click(function(evt) {
@@ -134,6 +169,6 @@ $(document).ready(function () {
     } else if (mode == "C") {
       mode = "F";
     }
-    $("h4#units").html("Displaying temp in degrees " + mode);
+    $("input#currTemp").attr("value", '0 \xB0' + mode);
   });
 });
