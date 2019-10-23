@@ -27,14 +27,18 @@ import asyncio
 from AWSIoTPythonSDK.MQTTLib import AWSIoTMQTTClient
 from integrated import Ui_Form #note the capitalization
 
+import json
+
 #From Project 1
 sensor = Adafruit_DHT.DHT22
-pin = 4     # pin 7 on rpi 3 is GPIO 4
+pin = 16     # pin 7 on rpi 3 is GPIO 4
 import numpy as np
 import time
 import datetime
         
-
+##JSON Stringyfy
+#message1 = json.dumps({"TemperatureinC":25, "Humidity":75})
+#message2 = json.dumps("Sensor values above threshold")
 
 
 #MySQL database configurations:
@@ -51,47 +55,6 @@ conn.commit()
 
 #Tornado Server
 
-class WSHandler(tornado.websocket.WebSocketHandler):
-    def open(self):
-        print('new connection')
-      
-    def on_message(self, message):
-        global connection_flag
-        print("connection flag handler {}".format(connection_flag))
-        print('message received:  {}'.format(message))
-        
-        c=conn.cursor()
-        c.execute("SELECT * FROM SENSOR ORDER BY count DESC LIMIT 20")
-        for row in c.fetchall():
-            print(connection_flag)
-            if connection_flag == 1:
-                self.write_message("Sensor not working")
-            else:
-                
-                 if message == "Current Value":
-                     humidity, temperature = Adafruit_DHT.read(sensor,pin)
-                     if humidity is not None and temperature is not None:
-                         humidity, temperature = Adafruit_DHT.read(sensor, pin)
-                         t_f=round((temperature*9)/5+32)
-                         unix = int(time.time())
-                         date = str(datetime.datetime.fromtimestamp(unix).strftime('%Y-%m-%d %H:%M:%S'))
-                         c.execute("INSERT INTO SENSOR (dateandtime, TEMPERATUREinC,TEMPERATUREinF,HUMIDITY) VALUES (%s, %s, %s, %s)",(date, temperature, t_f, humidity))
-                         self.write_message("{};{};{}".format(row[1],row[2],row[4]))
-                 
-                 elif message == "Tabular Value":
-                        c.execute("SELECT * FROM SENSOR ORDER BY count DESC LIMIT 20")
-                        self.write_message("{};{};{}".format(row[1],row[2],row[4]))
-            
-
-    def on_close(self):
-        print('connection closed')
- 
-    def check_origin(self, origin):
-        return True
- 
-application = tornado.web.Application([
-    (r'/ws', WSHandler),
-])
 
 #MQTT Connection- It enables communication between the cloud platform and the system
 mqtt_client = AWSIoTMQTTClient("EID_Project3")
@@ -106,6 +69,10 @@ mqtt_client.configureMQTTOperationTimeout(5)  # 5 sec
 #Test Connection
 mqtt_client.connect()
 mqtt_client.publish("EID_Project3", '{ "Connected": "value1" }', 0)
+
+#JSON Stringyfy
+message1 = json.dumps({"TemperatureinC":str(temperature), "Humidity":str(humidity)})
+message2 = json.dumps("Sensor values above threshold")
 
 #GUI code from PRoject 1
 
@@ -190,9 +157,9 @@ class Form(Ui_Form):
         unix = int(time.time())
         date = str(datetime.datetime.fromtimestamp(unix).strftime('%Y-%m-%d %H:%M:%S'))
         self.ui.status.setText("status: Temperature - " + str(int(self.temp_f)) + "deg F / " + str(int(self.temp_c)) + "deg C || Humidity: " + str(int(self.hum)) + "% || Date/Time: " + date)
-
+        message1 = json.dumps({"TemperatureinC":int(temperature), "Humidity":str(humidity)})
         c.execute("INSERT INTO SENSOR (dateandtime, TEMPERATUREinC,TEMPERATUREinF,HUMIDITY) VALUES (%s, %s, %s, %s)",(date, temperature, t_f, humidity))
-
+        mqtt_client.publish("EID_Project3", message1,0);
         conn.commit()
 #        c.close
 #        conn.close()
@@ -209,35 +176,35 @@ class Form(Ui_Form):
         # self.currHum.setText('{0:0.1f} %  '.format(self.hum))
     
     # generate Temperature and Humidity graphs
-    def plot_graph(self):
-        self.ui.tempGraph.plot(self.idx_list, self.temp_list)
-        plt = self.ui.tempGraph.canvas.ax
-
-        #plt.clear()
-        self.ui.tempGraph.canvas.clear()
-
-        plt.set_xlabel('Latest 10 values')
-        
-        if self.mode == "C":
-            plt.set_ylabel('Temperature (Celsius)')
-            plt.set_title('Temperature') #| Average = {0:0.1f} deg C
-            plt.savefig('temp.png')
-        elif self.mode == "F":
-            plt.set_ylabel('Temperature (Fahrenheit)')
-            plt.set_title('Temperature') # | Average = {0:0.1f} deg F.format(self.avgT).format(self.avgT)
-        self.ui.tempGraph.canvas.draw()
-
-        self.ui.humGraph.plot(self.idx_list, self.hum_list)        
-        plt2 = self.ui.humGraph.canvas.ax
-        #plt2.clear()
-        self.ui.humGraph.canvas.clear()
-
-        plt2.set_xlabel('Latest 10 values')
-        plt2.set_ylabel('Humidity (%)')
-        plt2.set_title('Humidity')
-        plt2.savefig('humidity.png')#| Average = {0:0.1f} %.format(self.avgH)
-        self.ui.humGraph.canvas.draw()
-
+#    def plot_graph(self):
+#        self.ui.tempGraph.plot(self.idx_list, self.temp_list)
+#        plt = self.ui.tempGraph.canvas.ax
+#
+#        #plt.clear()
+#        #self.ui.tempGraph.canvas.clear()
+#
+#        plt.set_xlabel('Latest 10 values')
+#        
+#        if self.mode == "C":
+#            plt.set_ylabel('Temperature (Celsius)')
+#            plt.set_title('Temperature') #| Average = {0:0.1f} deg C
+#            plt.savefig('temp.png')
+#        elif self.mode == "F":
+#            plt.set_ylabel('Temperature (Fahrenheit)')
+#            plt.set_title('Temperature') # | Average = {0:0.1f} deg F.format(self.avgT).format(self.avgT)
+#        self.ui.tempGraph.canvas.draw()
+#
+#        self.ui.humGraph.plot(self.idx_list, self.hum_list)        
+#        plt2 = self.ui.humGraph.canvas.ax
+#        #plt2.clear()
+#        #self.ui.humGraph.canvas.clear()
+#
+#        plt2.set_xlabel('Latest 10 values')
+#        plt2.set_ylabel('Humidity (%)')
+#        plt2.set_title('Humidity')
+#        plt2.savefig('humidity.png')#| Average = {0:0.1f} %.format(self.avgH)
+#        self.ui.humGraph.canvas.draw()
+#
     # pull current reading
     def button_pressed(self):
         self.sensor()
@@ -312,7 +279,7 @@ class Form(Ui_Form):
         if _currTemp > self.maxT or _currTemp < self.minT:
             print("NO NO NO")
             message="Temp and Humidity above threshold!!!"
-            mqtt_client.publish("EID_Project3", message, 0)
+            mqtt_client.publish("EID_Project3", message2, 0)
             self.ui.currTemp.setProperty("alert", True)
         else:
             print("just right")
@@ -322,7 +289,7 @@ class Form(Ui_Form):
         if _avgTemp > self.maxT or _avgTemp < self.minT:
             self.ui.avgTemp.setProperty("alert", True)
             message="Temp and Humidity above threshold!!!"
-            mqtt_client.publish("EID_Project3", message, 0)
+            #mqtt_client.publish("EID_Project3", message2, 0)
         else:
             self.ui.avgTemp.setProperty("alert", False)
         
@@ -341,7 +308,7 @@ class Form(Ui_Form):
         if self.ui.currHum.intValue() < self.ui.humSet.start():
             self.ui.currHum.setProperty("alert", True)
             message="Temp and Humidity above threshold!!!"
-            mqtt_client.publish("EID_Project3", message, 0)
+            mqtt_client.publish("EID_Project3", message2, 0)
         else:
             self.ui.currHum.setProperty("alert", False)
             
@@ -349,7 +316,7 @@ class Form(Ui_Form):
         if self.ui.avgHum.intValue() < self.ui.humSet.start():
             self.ui.avgHum.setProperty("alert", True)
             message="Temp and Humidity above threshold!!!"
-            mqtt_client.publish("EID_Project3", message, 0)
+            #mqtt_client.publish("EID_Project3", message2, 0)
         else:
             self.ui.avgHum.setProperty("alert", False)
             
@@ -358,20 +325,21 @@ class Form(Ui_Form):
 
     # handle timerstart/increment/loop/stop
     def timerEvent(self, e):
-        self.ui.autoRefresh.setValue(self.count)
-        if self.count >=15:
-            self.count = 0
-            self.repeats += 1
-            if self.repeats == 29:
-                self.timer.stop()
-            self.updateReadings()
-            self.plot_graph()
-        else:
-            if self.timer.isActive():
-                pass
-            else:
-                self.timer.start(1000,self) #10 milliseconds
-        self.count+=1
+#        self.ui.autoRefresh.setValue(self.count)
+#        if self.count >=15:
+#            self.count = 0
+#            self.repeats += 1
+#            if self.repeats == 29:
+#                self.timer.stop()
+#            self.updateReadings()
+#            self.plot_graph()
+#        else:
+#            if self.timer.isActive():
+#                pass
+#            else:
+#                self.timer.start(1000,self) #10 milliseconds
+#        self.count+=1
+        return
         
     # temperature converting functions
     def FtoC(temp_f):
@@ -380,17 +348,9 @@ class Form(Ui_Form):
         return temp_c*9/5 + 32
     
 
-#Server connection establishment
+
     
 
-def tornado_server():
-        asyncio.set_event_loop(asyncio.new_event_loop())
-        http_server = tornado.httpserver.HTTPServer(application)
-        http_server.listen(8888)
-        myIP = socket.gethostbyname(socket.gethostname())
-        print ('*** Websocket Server Started at %s***' % myIP)
-        tornado.ioloop.IOLoop.instance().start()
-        
 if __name__ == "__main__":
 
     class AppWindow(QDialog):
