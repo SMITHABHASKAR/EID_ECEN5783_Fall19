@@ -21,23 +21,31 @@ import tornado.web
 import socket
 import threading
 from threading import Lock
+import Adafruit_DHT
 import time
 import asyncio
 from AWSIoTPythonSDK.MQTTLib import AWSIoTMQTTClient
+from integrated import Ui_Form #note the capitalization
 
 #From Project 1
 sensor = Adafruit_DHT.DHT22
 pin = 4     # pin 7 on rpi 3 is GPIO 4
+import numpy as np
+import time
+import datetime
         
 
 
 
 #MySQL database configurations:
 #MySQL Database 
-conn = MySQLdb.connect(host= "localhost",user= "EID",passwd="EID",db="TEMP")
+conn = MySQLdb.connect(host= "localhost",user= "root",db="mysql")
 c=conn.cursor()
-
-c.execute("INSERT INTO Sensor (dateandtime, TEMPERATUREinC,TEMPERATUREinF,HUMIDITY) VALUES (%s, %s, %s, %s)",(date, temperature, t_f, humidity))
+unix = int(time.time())
+date = str(datetime.datetime.fromtimestamp(unix).strftime('%Y-%m-%d %H:%M:%S'))
+humidity, temperature = Adafruit_DHT.read(sensor, pin)
+#t_f= (temperature*9)/5+32
+c.execute("INSERT INTO SENSOR (dateandtime, TEMPERATUREinC,HUMIDITY) VALUES (%s, %s, %s)",(date, temperature, humidity))
 
 conn.commit()
 
@@ -53,7 +61,7 @@ class WSHandler(tornado.websocket.WebSocketHandler):
         print('message received:  {}'.format(message))
         
         c=conn.cursor()
-        c.execute("SELECT * FROM Sensor ORDER BY count DESC LIMIT 20")
+        c.execute("SELECT * FROM SENSOR ORDER BY count DESC LIMIT 20")
         for row in c.fetchall():
             print(connection_flag)
             if connection_flag == 1:
@@ -67,11 +75,11 @@ class WSHandler(tornado.websocket.WebSocketHandler):
                          t_f=round((temperature*9)/5+32)
                          unix = int(time.time())
                          date = str(datetime.datetime.fromtimestamp(unix).strftime('%Y-%m-%d %H:%M:%S'))
-                         c.execute("INSERT INTO Sensor (dateandtime, TEMPERATUREinC,TEMPERATUREinF,HUMIDITY) VALUES (%s, %s, %s, %s)",(date, temperature, t_f, humidity))
+                         c.execute("INSERT INTO SENSOR (dateandtime, TEMPERATUREinC,TEMPERATUREinF,HUMIDITY) VALUES (%s, %s, %s, %s)",(date, temperature, t_f, humidity))
                          self.write_message("{};{};{}".format(row[1],row[2],row[4]))
                  
                  elif message == "Tabular Value":
-                        c.execute("SELECT * FROM Sensor ORDER BY count DESC LIMIT 20")
+                        c.execute("SELECT * FROM SENSOR ORDER BY count DESC LIMIT 20")
                         self.write_message("{};{};{}".format(row[1],row[2],row[4]))
             
 
@@ -87,16 +95,17 @@ application = tornado.web.Application([
 
 #MQTT Connection- It enables communication between the cloud platform and the system
 mqtt_client = AWSIoTMQTTClient("EID_Project3")
-mqtt_client.configureEndpoint("a3dmegpl3q4zhs-ats.iot.us-west-2.amazonaws.com", 8883)
-mqtt_client.configureCredentials("AmazonRootCA1.pem", "60bff5a399-private.pem.key", "60bff5a399-public.pem.key")
+#mqtt_client.configureEndpoint("a3dmegpl3q4zhs-ats.iot.us-west-2.amazonaws.com", 8883)
+mqtt_client.configureEndpoint("adissqm2qlgsh-ats.iot.us-west-2.amazonaws.com",8883)
+mqtt_client.configureCredentials("AmazonRootCA1.pem", "3afa034ac3-private.pem.key", "3afa034ac3-certificate.pem.crt")
 mqtt_client.configureOfflinePublishQueueing(-1)  # Infinite offline Publish queueing
 mqtt_client.configureDrainingFrequency(2)  # Draining: 2 Hz
-mqtt_client.configureConnectDisconnectTimeout(15)  # 15 sec
+mqtt_client.configureConnectDisconnectTimeout(10)  # 10 sec
 mqtt_client.configureMQTTOperationTimeout(5)  # 5 sec
 
 #Test Connection
 mqtt_client.connect()
-mqtt_client.publish("ConnectionInfo", ' "Connected" ', 0)
+mqtt_client.publish("EID_Project3", '{ "Connected": "value1" }', 0)
 
 #GUI code from PRoject 1
 
@@ -182,7 +191,7 @@ class Form(Ui_Form):
         date = str(datetime.datetime.fromtimestamp(unix).strftime('%Y-%m-%d %H:%M:%S'))
         self.ui.status.setText("status: Temperature - " + str(int(self.temp_f)) + "deg F / " + str(int(self.temp_c)) + "deg C || Humidity: " + str(int(self.hum)) + "% || Date/Time: " + date)
 
-        c.execute("INSERT INTO Sensor (dateandtime, TEMPERATUREinC,TEMPERATUREinF,HUMIDITY) VALUES (%s, %s, %s, %s)",(date, temperature, t_f, humidity))
+        c.execute("INSERT INTO SENSOR (dateandtime, TEMPERATUREinC,TEMPERATUREinF,HUMIDITY) VALUES (%s, %s, %s, %s)",(date, temperature, t_f, humidity))
 
         conn.commit()
 #        c.close
@@ -383,19 +392,21 @@ def tornado_server():
         tornado.ioloop.IOLoop.instance().start()
         
 if __name__ == "__main__":
-        import sys
-        super().__init__()
-        self.ui = Ui_Form() # Class name from bestThermostat.py
-        self.ui.setupUi(self)
-        self.show()
 
-        app = QApplication(sys.argv)
-        w = Form()
-        w.show()
-        t1 = threading.Thread(target=tornado_server)
-        t1.start()
-        sys.exit(app.exec_())
-        t1.join()
+    class AppWindow(QDialog):
+        def __init__(self): 
+            super().__init__()
+            self.ui = Ui_Form() # Class name from bestThermostat.py
+            self.ui.setupUi(self)
+            self.show()
+
+    app = QtWidgets.QApplication(sys.argv)
+    w = Form()
+    w.show()
+    #t1 = threading.Thread(target=tornado_server)
+    #t1.start()
+    sys.exit(app.exec_())
+    #t1.join()
 
     
     
