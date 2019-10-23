@@ -10,7 +10,7 @@
     <title>EID Project 3: Temperature/Humidity Client via AWS</title>
  	  <link rel ="stylesheet" href="style.css">
     <script src="http://code.jquery.com/jquery.min.js"></script>
-    <script src="https://sdk.amazonaws.com/js/aws-sdk-2.553.0.min.js"></script>
+    <script src="https://sdk.amazonaws.com/js/aws-sdk-2.554.0.min.js"></script>
     <script src="client.js"></script>
   </head>
   <body>
@@ -42,21 +42,24 @@
           <button type="submit" id="switch" value="switch">Switch to C</button>
         </div>
         <div id="queue">
-          <button type="submit" id="network" value="network">Show Queue Count</button>
+          <button type="submit" id="queue" value="queue">Show Queue Count</button>
         </div>
       </div>
 
       <div class="column right" id="display">
-        <h4 id="units"></h4>
-        <div id="queue"></div>
-        <div id="latest">
-          <label for="currTemp">Temperature:</label>
-          <input id="currTemp" type="number" readonly="true" value="0">
-          <label for="currHum">Humidity:</label>
-          <input id="currHum" type="number" readonly="true" value="0">
+        <div>
+          <span id="latest">
+            <label for="currTemp">Temperature:</label>
+            <input id="currTemp" type="text" readonly="true" value="0 &deg;F">
+            <label for="currHum">Humidity:</label>
+            <input id="currHum" type="text" readonly="true" value="0 &#37;">
+          </span>
+          <span id="queueCount"></span>
         </div>
+
         <div id="feed">
         </div>
+        
         <h4>Terminal</h4>
         <div id="terminal">
         </div>
