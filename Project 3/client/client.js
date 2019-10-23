@@ -13,6 +13,8 @@ AWS.config.credentials = new AWS.CognitoIdentityCredentials({
     IdentityPoolId: 'us-west-2:d4b53238-567d-4e08-88cf-724393cf23cd',
 });
 
+var queueURL = 'https://sqs.us-west-2.amazonaws.com/729220473028/Test1';
+
 // log function
 log = function(data) {
   $("div#terminal").prepend("</br>" + data);
@@ -39,37 +41,55 @@ $(document).ready(function () {
   var header = "";
   var rows = [];
   var count = 0;
+
+  var params = {
+        QueueUrl: queueURL, // required
+        AttributeNames: [ "All" ], // array [ name1 | name 2 | ... ]
+        MaxNumberOfMessages: 10,
+        MessageAttributeNames: [ "All" ],
+        WaitTimeSeconds: 0
+      };
+  
+  // create JSON parameters for receiving messages from AWS SQS
+  SQSConnect();
   startTable();
 
   //$("h4#units").html("Displaying temp in degrees " + mode);
 
   function SQSConnect() {
-    // create JSON parameters for receiving messages from AWS SQS
-    var readParams = {
-      QueueUrl: 'STRING_VALUE', // required
-      AttributeNames: [ "All" ], // array [ name1 | name 2 | ... ]
-      MaxNumberOfMessages: 1,
-      MessageAttributeNames: [ "All" ],
-      WaitTimeSeconds: 0
-    };
-
-    // fill in params from user input
-
     // create the SQS service object
     sqs = new AWS.SQS();
 
     // get data from SQS and display it on the webpage
     sqs.receiveMessage(params, function(err, data) {
       if (err) {
-        console.log(err, err.stack);  // error occured
+        log( [err, err.stack] );  // error occured
         connected = false;
+        $("#aws").css("background", "#ff0000");
+        $("#aws").attr("readonly", "false");
+        $("#open").attr("disabled", "false");
       } else {
-        console.log(data);            // success
+        log(data);            // success
         connected = true;
+        $("#aws").css("background", "#00ff00");
+        $("#aws").attr("value", "Connected!");
+        $("#aws").attr("readonly", "true");
+        $("#open").attr("disabled", "true");
+
+        log(parseMessage(data));
     }});
 
     // if doing extra credit, use getQueueAttributes
     // queue attribute (also available from received messages) - ApproximateNumberOfMessages
+    sqs.getQueueAttributes()
+  }
+
+  function parseMessage(data) {
+    var message = data.Messages[0];
+    var contents = {
+      body: message.Body
+    };
+    return contents.body;
   }
 
   function startTable() {
