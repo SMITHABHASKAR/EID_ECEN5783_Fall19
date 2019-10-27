@@ -20,6 +20,8 @@ Install the following software packages/libraries:
 
 Follow the instructions from Amazon Web Services (AWS) to [set up AWS IoT Greengrass on the Raspberry Pi.](https://docs.aws.amazon.com/greengrass/latest/developerguide/gg-gs.html) (Modules 1-3)
 
+Set up the Lambda function in AWS either directly from the code in `./server/dataVsAlert_lambda.py` or by uploading the `./server/dataVsAlert_AWSLambda_deploypkg.zip` deployment package.
+
 Run `./server/sensor_AWS.py` to start the sensor readings and AWS connection.
 
 ### Client Installation:
