@@ -41,14 +41,20 @@ button {
 	padding: 10px;
 }
 
-#latest input {
-	width: 40px;
+#latest input, #queueCount input {
 	background-color: #EEEEEE;
+}
+
+#currTemp {
+	width: 50px;
+}
+
+#currHum {
+	width: 40px;
 }
 
 #queueCount input {
 	width: 80px;
-	background-color: #EEEEEE;	
 }
 
 #feed table {

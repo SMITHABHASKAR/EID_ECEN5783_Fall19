@@ -34,6 +34,7 @@ $(document).ready(function () {
 
   var connected = false;
   var mode = "F";
+  var currTemp, currHum;
   var sqs;
   var queueShow = false;
 
@@ -80,6 +81,7 @@ $(document).ready(function () {
         log( [err, err.stack] );  // error occured
         connected = false;
         $("#aws").css("background", "#ff0000");
+        $("#aws").attr("value", "ERROR");
         $("#aws").attr("readonly", "false");
         $("#open").attr("disabled", "false");
       } else {
@@ -91,20 +93,22 @@ $(document).ready(function () {
         $("#open").attr("disabled", "true");
 
         message = data.Messages[0];
-        parsed = parseMessage(message);
-        log(parsed);
+        if (message) {
+          parsed = parseMessage(message);
+          log(parsed);
 
-        paramsDelete.ReceiptHandle = message.ReceiptHandle;
-        sqs.deleteMessage(paramsDelete, function(err, data) {
-          if (err) {
-            console.log(err, err.stack); // an error occurred
-          } else { 
-            console.log("Message deleted");
-            console.log(data);           // successful response
-          }
-        });
+          paramsDelete.ReceiptHandle = message.ReceiptHandle;
+          sqs.deleteMessage(paramsDelete, function(err, data) {
+            if (err) {
+              console.log(err, err.stack); // an error occurred
+            } else { 
+              console.log("Message deleted");
+              console.log(data);           // successful response
+            }
+          });
 
-        updateTable(parsed); // JSON object
+          updateTable(parsed); // JSON object
+        }
     }});
   }
 
@@ -121,19 +125,20 @@ $(document).ready(function () {
         $("#aws").attr("readonly", "false");
         $("#open").attr("disabled", "false");
       } else {
-        log(data);            // success
+        log("got queue attributes:");            // success
+        console.log(data);
         queueCount = data.Attributes.ApproximateNumberOfMessages;
-        log(queueCount);
+        log("queue count: " + queueCount);
 
         connected = true;
         $("#aws").css("background", "#00ff00");
         $("#aws").attr("value", "Connected!");
         $("#aws").attr("readonly", "true");
         $("#open").attr("disabled", "true");
+
+        return queueCount;
       }
     });
-
-    return queueCount;
   }
 
   function parseMessage(message) {
@@ -162,6 +167,8 @@ $(document).ready(function () {
     var newEntry = record;
     if (newEntry != "Sensor values above threshold") {
       count++;
+      currTemp = newEntry.TemperatureinC;
+      currHum = newEntry.Humidity;
       var newRow = '<tr><td>' + count + '</td><td>' + newEntry.TemperatureinC + '</td><td>' + '' + '</td><td>' + newEntry.Humidity + '</td></tr>';
       
       if (count <= 20) {
@@ -171,6 +178,14 @@ $(document).ready(function () {
         rows.push(newRow);
       }
       $('#feed').html(header + rows.join('') + '</table>');
+
+      // also update latest readings
+      if (mode == "F") {
+        currTemp = CtoF(currTemp);
+      }
+      $('input#currTemp').attr("value", currTemp.toString() + ' \xB0' + mode);
+      $('input#currHum').attr("value", currHum.toString().substring(0,2) + " %");
+      updateQueueCount();
     }
   }
 
@@ -227,6 +242,14 @@ $(document).ready(function () {
     }
   });
 
+  function updateQueueCount() {
+    var queueNum = SQSQueue();
+    if (queueNum.isInteger()) {
+      log("number in queue: " + queueNum);
+      $('input#queueNum').attr("value", queueNum.toString() + " records");
+    } else { log("undefined queue number"); }
+  }
+
   // Show number of records in SQS Queue
   $("#queue").click(function(evt) {
     queueShow = !queueShow;
@@ -236,9 +259,7 @@ $(document).ready(function () {
         '<label for="queueNum">Queue: </label>' +
         '<input id="queueNum" type="text" readonly="true" value="0 records">')
       $("span#queueCount").show()
-      var queueNum = SQSQueue();
-      log(queueNum);
-      $('input#queueNum').attr("value", queueNum + " records");
+      updateQueueCount();
       $("button#queue").html("Hide Queue Count");
     } else {
       $("span#queueCount").hide()
@@ -251,9 +272,11 @@ $(document).ready(function () {
     $("button#switch").html("Switch to " + mode);
     if (mode == "F") {
       mode = "C";
+      currTemp = FtoC(currTemp);
     } else if (mode == "C") {
       mode = "F";
+      currTemp = CtoF(currTemp);
     }
-    $("input#currTemp").attr("value", '0 \xB0' + mode);
+    $("input#currTemp").attr("value", currTemp + ' \xB0' + mode);
   });
 });
