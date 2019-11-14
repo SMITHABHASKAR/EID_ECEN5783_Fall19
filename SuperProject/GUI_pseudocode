@@ -89,7 +89,9 @@ Entry ways:
 
 	BUTTON: Save work
 	Function: 
-	- show file editing dialog
+	- prompt user to name file
+	- (if new project) generate QR code before quitting
+	- option: send QR code to user (email or text) -> call back end function for AWS SNS
 	- save all work to AWS
 	- clean Pi files
 	- quit program
@@ -100,3 +102,14 @@ Entry ways:
 	- quit program
 
 # Back end
+
+FUNCTION: maintain loom connection
+- sense a long pause (no signals in ___ seconds)
+- resend connect signal 
+- ensure ACK signal is returned
+
+FUNCTION: send weaving row to AWS
+
+FUNCTION: send project info to AWS
+
+FUNCTION: call AWS SNS to send QR code to user
