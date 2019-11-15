@@ -13,6 +13,9 @@ var server = net.createServer(function(socket) {
 	    //fs.writeFileSync("log.txt", data, );
 	    socket.write("roger that");
 	});
+	socket.on('connect', function(data) {
+		console.log("new connection from " + socket.remoteAddress + ":" + socket.remotePort);
+	});
 	socket.on('error', (e) => {
 		console.log(e.code);
 	});

@@ -1,5 +1,6 @@
 import math
 import sys, os
+import socket
 from PyQt5 import QtCore, QtGui, QtWidgets, QtNetwork
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
@@ -15,18 +16,15 @@ initiateLoomConnection = QByteArray(bytearray(b'\x04\x0e'))
 def printOutput(output):
     print (output)
 
-class LoomControl(QtNetwork.QTcpSocket):
+class LoomControl(socket.socket):
     # see documentation https://doc.qt.io/qtforpython/PySide2/QtNetwork/QTcpSocket.html
-
-    loomConnect = QtCore.pyqtSignal(int)
-    received = QtCore.pyqtSignal(object)
 
     def __init__(self, parent=None):
         super(LoomControl, self).__init__(parent)
 
     # def connect(self, address, port):
-    # 	# ip address = string, port = int
-    # 	super(LoomControl).connectToHost(self, address, port
+    #   # ip address = string, port = int
+    #   super(LoomControl).connectToHost(self, address, port
 
 class Loom(object): 
     # self.loomcontrol = LoomControl() # using QT equiv of a network client, send/receive QByteArrays
@@ -36,7 +34,7 @@ class Loom(object):
     lookup = [7, 5, 3, 151, 149, 55, 53, 51, 199, 197, 1, 11, 9, 147, 145, 49, 59, 57, 195, 193, 23, 21, 155, 153, 71, 69, 67, 203, 201, 19, 17, 31, 167, 165, 65, 79, 77, 215, 213, 29, 27, 25, 163, 161, 75, 73, 87, 211, 209, 39, 37, 35, 175, 173, 85, 83, 81, 223, 221, 33, 47, 45, 171, 169, 95, 93, 219, 217, 43, 41, 6, 183, 181, 91, 89, 103, 231, 229, 4, 2, 0, 179, 177, 101, 99, 97, 227, 225, 10, 8, 22, 191, 189, 107, 105, 119, 239, 237, 20, 18, 16, 187, 185, 117, 115, 113, 235, 233, 30, 28, 150, 148, 127, 125, 123, 198, 196, 26, 24, 38, 146, 144, 121, 135, 133, 194, 192, 36, 34, 32, 154, 152, 131, 129, 143, 202, 200, 46, 44, 42, 166, 164, 141, 139, 137, 214, 212, 40, 54, 52, 162, 160, 102, 100, 210, 208, 50, 48, 58, 174, 172, 98, 96, 106, 222, 220, 56, 70, 68, 170, 168, 104, 118, 116, 218, 216, 66, 64, 78, 182, 180, 114, 112, 126, 230, 228, 76, 74, 72, 178, 176, 124, 122, 120, 226, 224, 86, 84, 190, 188, 134, 132, 130, 238, 236, 82, 80, 94, 186, 184, 128, 142, 140, 234, 232, 92, 90, 88, 138, 136]
 
     def __init__(self, loomControl, numberOfModules, parent = None):
-        self.loomcontrol = QtNetwork.QTcpSocket()
+        self.loomcontrol = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.modules = numberOfModules
         self.threads = self.modules * _TPM
         self.pickNumber = 0 # the number of rows that have been sent to the loom
@@ -56,10 +54,10 @@ class Loom(object):
         return QtCore.QString(received)
 
     def connectLoom(self, address, port):
-    	# ip address = string, port = int
+        # ip address = string, port = int
         print ("connecting to loom at ",address,":",port)
         try:
-            self.loomcontrol.connectToHost(address, port)
+            self.loomcontrol.connect((address, port))
         except connectionFailure:
             print ("connection failed")
         #print ("sending connect packets to loom")
