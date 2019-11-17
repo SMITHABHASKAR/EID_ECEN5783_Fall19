@@ -4,8 +4,9 @@
 
 import math
 import sys, os
-from Loom import printOutput, Loom, LoomControl
+from Loom import printOutput, Loom
 from PyQt5 import QtCore, QtGui, QtWidgets, QtNetwork
+from PyQt5.QtCore import pyqtSlot
 
 # diagnostic/debugging settings
 realLoom = False # connect to a dummy TCP server
@@ -18,32 +19,58 @@ ipAddress = "192.168.7.20"
 class Ui_Form(QtWidgets.QMainWindow):
   def setupUi(self, Form):
     Form.setObjectName("Loom")
-    Form.resize(500,300)
+    Form.resize(500,350)
 
-    self.loomControl = LoomControl()
-    self.loomHandler = Loom(self.loomControl, _MODULES) # loom object?
+    self.loomHandler = Loom(_MODULES)
+    #self.loomControl = self.loomHandler.loomcontrol # a TCP socket
 
     self.connectButton = QtWidgets.QPushButton(Form)
     self.connectButton.setGeometry(QtCore.QRect(10, 10, 100, 40))
     self.connectButton.setObjectName("connect")
-
-    self.vacuum = QtWidgets.QPushButton(Form)
-    self.vacuum.setGeometry(QtCore.QRect(120, 10, 100, 40))
-    self.vacuum.setObjectName("vacuumToggle")
-    #self.vacuum.setEnabled(False)
 
     self.terminal = QtWidgets.QTextEdit(Form)
     self.terminal.setGeometry(QtCore.QRect(10, 60, 480, 200))
     self.terminal.setObjectName("terminal")
     self.terminal.setReadOnly(True)
 
+    # buttons available after connection established
+    self.vacuum = QtWidgets.QPushButton(Form)
+    self.vacuum.setGeometry(QtCore.QRect(120, 10, 100, 40))
+    self.vacuum.setObjectName("vacuumToggle")
+    self.vacuum.setEnabled(False)
+
+    self.tabby = QtWidgets.QPushButton(Form)
+    self.tabby.setGeometry(QtCore.QRect(230, 10, 100, 40))
+    self.tabby.setObjectName("tabby")
+    self.tabby.setEnabled(False)
+
+    self.stop = QtWidgets.QPushButton(Form)
+    self.stop.setGeometry(QtCore.QRect(340, 10, 100, 40))
+    self.stop.setObjectName("stopButton")
+    self.stop.setEnabled(False)
+    self.stop.setVisible(False) # hidden until paused = true
+
+    # emulate pedal with GUI button
+    self.advance = QtWidgets.QPushButton(Form)
+    self.advance.setGeometry(QtCore.QRect(220, 280, 60, 60))
+    self.advance.setEnabled(False)
+    self.advance.setVisible(False) # hidden until started = true
+
+    self.activeFunctions = [self.vacuum, self.tabby, self.stop, self.advance]
+
     self.retranslateUi(Form)
 
-    #connections
+    #button connections
     self.connectButton.clicked.connect(Form.connectLoom)
     self.vacuum.clicked.connect(Form.vacuum)
-    self.loomControl.stateChanged.connect(printOutput)
-    #self.loomControl.readyRead.connect(Form.logData)
+    self.tabby.clicked.connect(Form.updateLoomState)
+    self.stop.clicked.connect(Form.stopLoom)
+    self.advance.clicked.connect(Form.draw)
+
+    #loom events
+    self.loomHandler.messageFromLoom.connect(Form.logData)
+    self.loomHandler.loomConnected.connect(Form.activateUI)
+    self.loomHandler.loomDisconnected.connect(Form.deactivateUI)
 
     QtCore.QMetaObject.connectSlotsByName(Form)
 
@@ -52,6 +79,9 @@ class Ui_Form(QtWidgets.QMainWindow):
     Form.setWindowTitle(_translate("Form", "Loom Connection"))
     self.connectButton.setText(_translate("Form", "Connect"))
     self.vacuum.setText(_translate("Form", "Vacuum Toggle"))
+    self.tabby.setText(_translate("Form", "Start Tabby"))
+    self.stop.setText(_translate("Form", "Stop"))
+    self.advance.setText(_translate("Form", "Next"))
 
 class Form(Ui_Form):
   def __init__ (self, parent = None):
@@ -60,6 +90,8 @@ class Form(Ui_Form):
     self.ui.setupUi(self)
 
     self.lineNumber = 0
+    self.loomConnected = False
+    self.loomState = "stopped" # stopped, started, paused
 
   def connectLoom(self):
     # loom = Loom(false); 
@@ -70,32 +102,63 @@ class Form(Ui_Form):
       port = 1337
       ipAddress = '127.0.0.1'
     print ("making connection request")
-    self.ui.loomControl.connectToHost(ipAddress, port)
-    self.ui.loomControl.waitForConnected(2000)
-    if (self.ui.loomControl.isConnected()):
-      self.activateFunctions()
-    else: print ("connection failed")
+    try:
+      self.ui.loomHandler.connectLoom(ipAddress, port)
+      print ("GUI: connection successful")
+    except:
+      print ("GUI: connection failed")
 
   def vacuum(self):
     print ("sending vacuum toggle")
     self.ui.loomHandler.toggleVacuum()
 
-  def logData():
-    newEntry = self.ui.loomHandler.readMessage()
+  def logData(self):
+    newEntry = str(self.ui.loomHandler.received)
     self.ui.terminal.append(newEntry)
 
-  def activateFunctions():
-    print ("connection successful!")
-    self.ui.vacuum.setEnabled(True)
+  def activateUI(self):
+    print ("connection successful! enabling functions")
+    self.ui.connectButton.setEnabled(False)
+    for function in self.ui.activeFunctions:
+      function.setEnabled(True)
+
+  def deactivateUI(self):
+    print ("connection broken!!!")
+    self.ui.connectButton.setEnabled(True)
+    for function in self.ui.activeFunctions:
+      function.setEnabled(False)
+
+  def updateLoomState(self):
+    if (self.loomState == "stopped" or self.loomState =="paused"): # transition from stopped to starting
+      self.ui.advance.setVisible(True) # started weaving, pedal is available
+      self.ui.advance.setEnabled(True)
+      self.ui.stop.setVisible(False)
+      self.loomState = "started"
+      self.ui.tabby.setText("Pause")
+      self.vacuum()
+    elif (self.loomState == "started"): # transition from started to paused
+      self.loomState = "paused"
+      self.vacuum()
+      self.ui.tabby.setText("Resume")
+      self.ui.advance.setEnabled(False) # disable pedal
+      self.ui.stop.setVisible(True)
+  
+  def stopLoom(self):
+    self.loomState = "stopped"
+    self.vacuum()
+    self.ui.advance.setVisible(False)
+    self.ui.stop.setVisible(False)
+    self.ui.tabby.setText("Start Tabby")
+
 
   def draw(self):
-    if (self.loomHandler.askingForPick):
-      print ("loom asking for pick")
-      self.ui.loomHandler.sendPick(self.renderNextPick())
+    #if (self.loomHandler.askingForPick):
+      #print ("loom asking for pick")
+    self.ui.loomHandler.sendPick(self.renderNextPick())
 
   def renderNextPick(self):
     self.lineNumber += 1
-    print ("rendering next pick " + self.lineNumber)
+    self.ui.terminal.append("rendering next pick " + str(self.lineNumber))
     return self.tabby(1320, self.lineNumber)
 
   # loom takes picks as a list of 1 or 0. The first number in the list is the leftmost warp.
@@ -107,12 +170,20 @@ class Form(Ui_Form):
       if (i%2 == rowNumber%2): 
         thread = 0
 
-      pattern[i] = thread
+      pattern.append(thread)
 
     return pattern
 
 # MAIN
 if __name__ == "__main__":
+  # how to make Python put out more useful info when crashing
+  # from: https://www.reddit.com/r/learnpython/comments/7or35q/questionpyqt5threading_my_gui_crash_whit_no_error/
+    sys._excepthook = sys.excepthook 
+    def exception_hook(exctype, value, traceback):
+        print(exctype, value, traceback)
+        sys._excepthook(exctype, value, traceback) 
+        sys.exit(1) 
+    sys.excepthook = exception_hook 
 
     class AppWindow(QtWidgets.QDialog):
         def __init__(self): 
@@ -126,5 +197,6 @@ if __name__ == "__main__":
     w.show()
     #t1 = threading.Thread(target=tornado_server)
     #t1.start()
-    sys.exit(app.exec_())
+    app.exec_()
     #t1.join()
+

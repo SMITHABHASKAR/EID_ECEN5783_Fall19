@@ -25,7 +25,7 @@ server.on('listening', function(data) {
 		console.log("listening at ", server.address());
 });
 server.on('connection', function(data) {
-	console.log("new connection from ");
+	console.log("new connection");
 });
 server.on('error', (e) => {
 	console.log(e.code);
