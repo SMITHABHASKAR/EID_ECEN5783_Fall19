@@ -4,17 +4,18 @@
 
 import math
 import sys, os
+import asyncio
 from Loom import printOutput, Loom
 from PyQt5 import QtCore, QtGui, QtWidgets, QtNetwork
 from PyQt5.QtCore import pyqtSlot
 
 # diagnostic/debugging settings
-realLoom = False # connect to a dummy TCP server
+realLoom = True # connect to a dummy TCP server
 _MODULES = 6
 
 # connection settings
-port = 62000
-ipAddress = "192.168.7.20"
+_PORT = 62000
+_IPADDRESS = '192.168.7.20'
 
 class Ui_Form(QtWidgets.QMainWindow):
   def setupUi(self, Form):
@@ -71,6 +72,7 @@ class Ui_Form(QtWidgets.QMainWindow):
     self.loomHandler.messageFromLoom.connect(Form.logData)
     self.loomHandler.loomConnected.connect(Form.activateUI)
     self.loomHandler.loomDisconnected.connect(Form.deactivateUI)
+    self.loomHandler.pickRequest.connect(Form.draw)
 
     QtCore.QMetaObject.connectSlotsByName(Form)
 
@@ -91,6 +93,7 @@ class Form(Ui_Form):
 
     self.lineNumber = 0
     self.loomConnected = False
+    self.vacuumOn = False
     self.loomState = "stopped" # stopped, started, paused
 
   def connectLoom(self):
@@ -99,22 +102,34 @@ class Form(Ui_Form):
     # use false for debugging (sending to the fake node loom; 
     # change to true to communicate with the actual loom
     if not realLoom:
+      print ("connecting to fake loom")
       port = 1337
       ipAddress = '127.0.0.1'
+    else:
+      port = _PORT
+      ipAddress = _IPADDRESS
+      print ("connecting to real loom at ",ipAddress,":",port)
     print ("making connection request")
-    try:
-      self.ui.loomHandler.connectLoom(ipAddress, port)
+    result = self.ui.loomHandler.connectLoom(ipAddress, port)
+    if (result):
       print ("GUI: connection successful")
-    except:
+    else:
       print ("GUI: connection failed")
 
   def vacuum(self):
     print ("sending vacuum toggle")
     self.ui.loomHandler.toggleVacuum()
+    if (self.vacuumOn):
+      self.vacuumOn = False
+    elif not (self.vacuumOn):
+      self.vacuumOn = True
 
-  def logData(self):
-    newEntry = str(self.ui.loomHandler.received)
+  def logData(self, event):
+    print ("logging received in terminal")
+    newEntry = str(event)#self.ui.loomHandler.received)
+    print ("got new entry from loomHandler")
     self.ui.terminal.append(newEntry)
+    print ("appended to terminal")
 
   def activateUI(self):
     print ("connection successful! enabling functions")
@@ -136,20 +151,22 @@ class Form(Ui_Form):
       self.loomState = "started"
       self.ui.tabby.setText("Pause")
       self.vacuum()
+      self.draw() # weaver can step on the pedal, "next" button not necessary
     elif (self.loomState == "started"): # transition from started to paused
       self.loomState = "paused"
       self.vacuum()
+      # need to resend current pick here, did not advance
       self.ui.tabby.setText("Resume")
       self.ui.advance.setEnabled(False) # disable pedal
       self.ui.stop.setVisible(True)
   
   def stopLoom(self):
     self.loomState = "stopped"
-    self.vacuum()
+    if (self.vacuumOn):
+      self.vacuum()
     self.ui.advance.setVisible(False)
     self.ui.stop.setVisible(False)
     self.ui.tabby.setText("Start Tabby")
-
 
   def draw(self):
     #if (self.loomHandler.askingForPick):
@@ -195,8 +212,9 @@ if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)
     w = Form()
     w.show()
+    app.exec_()
+    #asyncio.run(w.ui.loomHandler.loomcontrol.keepConnection())
     #t1 = threading.Thread(target=tornado_server)
     #t1.start()
-    app.exec_()
     #t1.join()
 
