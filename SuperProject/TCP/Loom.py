@@ -21,15 +21,13 @@ def printOutput(output):
     print (output)
 
 # this QThread represents the TCP connection to the loom
-# job 1: keeping TCP socket alive
+# job 1: keeping TCP socket alive (TODO?)
 # job 2: handle incoming data from loom as they come in (with a simple socket, the LoomHandler had to call socket.recv everytime)
 # job 3: handle things to be written to the loom when the Loom
 class LoomControl(QObject):
     def __init__(self, loom, parent=None):
         super(LoomControl, self).__init__(parent)
         self.loom = loom
-        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
 
         self.qsocket = QTcpSocket(self)
         self.qsocket.setSocketOption(QAbstractSocket.KeepAliveOption, 1)
@@ -39,6 +37,7 @@ class LoomControl(QObject):
 
         self.qsocket.readyRead.connect(self.read)
         self.qsocket.stateChanged.connect(printOutput)
+        self.qsocket.disconnected.connect(Loom.loomDisconnected)
         
         #self.create_socket() # same options as socket.socket(opts)
         #self.set_reuse_addr()
@@ -74,7 +73,7 @@ class Loom(QtCore.QObject):
     loomConnected = QtCore.pyqtSignal() # emitted when self.connected goes from False to True
     loomDisconnected = QtCore.pyqtSignal() # emitted when self.connected goes from True to False
 
-    vacuumChanged = QtCore.pyqtSignal(bool) # emitted when self.vacuum changes
+    vacuumChanged = QtCore.pyqtSignal() # emitted when loom responds to vacuum command
 
     messageFromLoom = QtCore.pyqtSignal(str) # emitted when self.loomcontrol socket receives a message from the loom
     pickRequest = QtCore.pyqtSignal() # emitted when message from loom matches the format for a pick request
@@ -212,6 +211,9 @@ class Loom(QtCore.QObject):
             print("a request!")
             self.pickRequest.emit()
             return True
+        elif (len(self.received) == 4 and self.received[2] == b'\x04'):
+            print("received vacuum on confirmation")
+            self.vacuumChanged.emit()
         else:
             print ("not a request")
             return False

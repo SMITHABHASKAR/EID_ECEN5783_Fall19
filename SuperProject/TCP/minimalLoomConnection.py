@@ -2,9 +2,8 @@
 # You must be running the test TCP server to use the "fake loom" debugging ability. 
 # (Otherwise it will have nothing to connect to and will error out.)
 
-import math
+import math, time
 import sys, os
-import asyncio
 from Loom import printOutput, Loom
 from PyQt5 import QtCore, QtGui, QtWidgets, QtNetwork
 from PyQt5.QtCore import pyqtSlot
@@ -66,13 +65,14 @@ class Ui_Form(QtWidgets.QMainWindow):
     self.vacuum.clicked.connect(Form.vacuum)
     self.tabby.clicked.connect(Form.updateLoomState)
     self.stop.clicked.connect(Form.stopLoom)
-    self.advance.clicked.connect(Form.draw)
+    self.advance.clicked.connect(Form.advance)
 
     #loom events
     self.loomHandler.messageFromLoom.connect(Form.logData)
     self.loomHandler.loomConnected.connect(Form.activateUI)
     self.loomHandler.loomDisconnected.connect(Form.deactivateUI)
-    self.loomHandler.pickRequest.connect(Form.draw)
+    self.loomHandler.pickRequest.connect(Form.advance)
+    self.loomHandler.vacuumChanged.connect(Form.sendToLoom)
 
     QtCore.QMetaObject.connectSlotsByName(Form)
 
@@ -92,6 +92,7 @@ class Form(Ui_Form):
     self.ui.setupUi(self)
 
     self.lineNumber = 0
+    self.rowBuffer = None # row buffer, holds data for current row in case of refresh
     self.loomConnected = False
     self.vacuumOn = False
     self.loomState = "stopped" # stopped, started, paused
@@ -151,7 +152,9 @@ class Form(Ui_Form):
       self.loomState = "started"
       self.ui.tabby.setText("Pause")
       self.vacuum()
-      self.draw() # weaver can step on the pedal, "next" button not necessary
+      self.advance() # weaver can step on the pedal, "next" button not necessary
+      #time.sleep(2)
+      #self.sendToLoom() # need to wait until vacuum on confirm
     elif (self.loomState == "started"): # transition from started to paused
       self.loomState = "paused"
       self.vacuum()
@@ -168,14 +171,23 @@ class Form(Ui_Form):
     self.ui.stop.setVisible(False)
     self.ui.tabby.setText("Start Tabby")
 
-  def draw(self):
+  def advance(self):
     #if (self.loomHandler.askingForPick):
       #print ("loom asking for pick")
-    self.ui.loomHandler.sendPick(self.renderNextPick())
+    self.lineNumber += 1
+    self.rowBuffer = self.renderNextPick()
+    self.sendToLoom()
+
+  def reverse(self):
+    self.lineNumber -= 1
+    self.rowBuffer = self.fetchPrevPick() # TODO: implement
+
+  def sendToLoom(self): # also functions as refresh, doesn't change the row buffer
+    self.ui.loomHandler.sendPick(self.rowBuffer)
+    print ("sent pick " +str(self.lineNumber))
 
   def renderNextPick(self):
-    self.lineNumber += 1
-    self.ui.terminal.append("rendering next pick " + str(self.lineNumber))
+    self.ui.terminal.append("rendering pick " + str(self.lineNumber))
     return self.tabby(1320, self.lineNumber)
 
   # loom takes picks as a list of 1 or 0. The first number in the list is the leftmost warp.
@@ -213,8 +225,3 @@ if __name__ == "__main__":
     w = Form()
     w.show()
     app.exec_()
-    #asyncio.run(w.ui.loomHandler.loomcontrol.keepConnection())
-    #t1 = threading.Thread(target=tornado_server)
-    #t1.start()
-    #t1.join()
-
