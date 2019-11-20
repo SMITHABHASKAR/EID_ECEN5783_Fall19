@@ -21,6 +21,8 @@ _TABBY = [[0, 1], [1, 0]]
 _TWILL = [[0, 0, 0, 1], [0, 0, 1, 0], [0, 1, 0, 0], [1, 0, 0, 0]]
 _WAFFLE = [[0, 0, 0, 1, 0, 1, 0, 0], [0, 0, 1, 0, 1, 0, 1, 0], [0, 1, 0, 1, 1, 1, 0, 1], [1, 0, 1, 1, 1, 1, 1, 0], [0, 1, 1, 1, 1, 1, 0, 1], [1, 0, 1, 1, 1, 0, 1, 0], [0, 1, 0, 1, 0, 1, 0, 0], [0, 0, 1, 0, 1, 0, 0, 0]]
 
+patternOptions = [["Tabby",_TABBY], ["Twill",_TWILL], ["Waffle",_WAFFLE]]
+
 # how to import pattern arrays from patterns.json?
 
 # yarns listed as [ SHORTCODE, HEX_COLOR ]
@@ -30,20 +32,15 @@ twoYarns = [['A', '0xFFFFFF'], ['B', '0xFF0000']]
 _ROWWIDTH = 1320
 _BLOCKSIZE = 20
 
-# pedals
-_ADVANCE = 1
-_REFRESH = 0
-_REVERSE = -1
-
 # diagnostic/debugging settings
-realLoom = False # connect to a dummy TCP server
+realLoom = True # connect to a dummy TCP server
 _MODULES = 6
 
 # connection settings
 _PORT = 62000
 _IPADDRESS = '192.168.7.20'
 
-# render pattern draft in QT widget
+# render pattern draft in QT for tracker
 # from https://stackoverflow.com/questions/39614777/how-to-draw-a-proper-grid-on-pyqt
 class patternDraft(QtWidgets.QGraphicsScene):
     def __init__(self, *args, **kwargs):
@@ -56,11 +53,12 @@ class patternDraft(QtWidgets.QGraphicsScene):
         self.patternWidth = 0
 
         # styles for rendering
-        self.linePen = QPen(QColor(128, 128, 128), 4) # gray line w/ weight 4
+        self.linePen = QPen(QColor(128, 128, 128), 3) # gray line w/ weight 4
         self.blackFill = QBrush(QColor(0, 0, 0))
         self.whiteFill = QBrush(QColor(255, 255, 255))
         
-    def drawDraft(pattern):
+    def drawDraft(self, pattern):
+        self.clear()
         self.pattern = pattern # 2D int array
 
         self.patternHeight = len(pattern)
@@ -70,16 +68,21 @@ class patternDraft(QtWidgets.QGraphicsScene):
         self.setSceneRect(0, 0, width, height)
         self.setItemIndexMethod(QtWidgets.QGraphicsScene.NoIndex)
         
-        for row in self.pattern:
-            for cell in row:
+        for row in range(0, len(self.pattern)):
+            for cell in range(0, len(pattern[row])):
                 xc = cell * _BLOCKSIZE
                 yc = row * _BLOCKSIZE
-                data = self.pattern[row][cell] # 0 or 1
+                data = pattern[row][cell] # 0 or 1
                 if data is 1:
-                    fill = blackFill
+                    fill = self.blackFill
                 elif data is 0:
-                    fill = whiteFill
-                self.addRect(xc, yc, _BLOCKSIZE, _BLOCKSIZE, linePen, fill)
+                    fill = self.whiteFill
+                self.addRect(xc, yc, _BLOCKSIZE, _BLOCKSIZE, self.linePen, fill)
+    
+    def placeMarker(self, row):
+        xm = 0
+        ym = row * _BLOCKSIZE
+        self.addRect(xm, ym, self.patternWidth + 10, _BLOCKSIZE)
     
     #   BUTTON: Pause
 
@@ -104,7 +107,6 @@ class patternDraft(QtWidgets.QGraphicsScene):
     #   - Refresh: send loom the current row again
     #   - Advance: send loom the next row in design
 
-# modified from ./TCP/minimalLoomConnection.py
 class Ui_Form(QtWidgets.QMainWindow):
   def setupUi(self, Form):
     Form.setObjectName("Loom")
@@ -118,10 +120,19 @@ class Ui_Form(QtWidgets.QMainWindow):
     self.connectButton.setObjectName("connect")
 
     self.terminal = QtWidgets.QTextEdit(Form)
-    self.terminal.setGeometry(QtCore.QRect(10, 60, 480, 200))
+    self.terminal.setGeometry(QtCore.QRect(270, 60, 210, 210))
     self.terminal.setObjectName("terminal")
     self.terminal.setReadOnly(True)
 
+    self.draft = patternDraft()
+    self.draftView = QtWidgets.QGraphicsView(self.draft, Form)
+    self.draftView.setGeometry(QtCore.QRect(10, 70, 200, 200))
+    self.draftView.setScene(self.draft)
+
+    self.selectPattern = QtWidgets.QComboBox(Form)
+    self.selectPattern.setGeometry(QtCore.QRect(10, 60, 200, 30))
+    self.selectPattern.addItems(["Select pattern", "Tabby", "Twill", "Waffle"])
+    
     # buttons available after connection established
     self.vacuum = QtWidgets.QPushButton(Form)
     self.vacuum.setGeometry(QtCore.QRect(120, 10, 100, 40))
@@ -170,6 +181,7 @@ class Ui_Form(QtWidgets.QMainWindow):
     self.tabby.clicked.connect(Form.updateLoomState)
     self.stop.clicked.connect(Form.stopLoom)
     self.advance.clicked.connect(Form.advance)
+    self.selectPattern.currentIndexChanged.connect(Form.updatePatternSelected)
 
     #loom events
     self.loomHandler.messageFromLoom.connect(Form.logData)
@@ -197,6 +209,7 @@ class Form(Ui_Form):
         self.ui = Ui_Form()
         self.ui.setupUi(self)
 
+        self.patternSelected = _TWILL
         self.lineNumber = 0
         self.patternRow = 0
         self.rowBuffer = None # row buffer, holds data for current row in case of refresh
@@ -204,7 +217,20 @@ class Form(Ui_Form):
         self.loomConnected = False
         self.vacuumOn = False
         self.loomState = "stopped" # stopped, started, paused
-        self.direction = _ADVANCE
+
+        #self.ui.draft.drawDraft(self.patternSelected)
+
+    def updatePatternSelected(self, pattern):
+        print (pattern)
+        if (pattern is 1):
+            self.patternSelected = _TABBY
+        elif (pattern is 2):
+            self.patternSelected = _TWILL
+        elif (pattern is 3):
+            self.patternSelected = _WAFFLE
+        
+        self.ui.draftView.setScene(self.ui.draft)
+        self.ui.draft.drawDraft(self.patternSelected)
 
     def connectLoom(self):
         # loom = Loom(false); 
@@ -291,14 +317,15 @@ class Form(Ui_Form):
         self.sendToLoom()
 
     def sendToLoom(self):
-        self.ui.loomHandler.sendPick(self.rowBuffer)
-        print ("sent pick " +str(self.lineNumber))
+        if (self.rowBuffer is not None):
+            self.ui.loomHandler.sendPick(self.rowBuffer)
+            print ("sent pick " +str(self.lineNumber))
 
     def renderNextPick(self):
         self.ui.terminal.append("rendering pick " + str(self.lineNumber))
         #return self.tabby(1320, self.lineNumber)
         #return self.weavePattern(_TWILL)
-        return self.weavePattern(_WAFFLE)
+        return self.weavePattern(self.patternSelected)
 
   # loom takes picks as a list of 1 or 0. The first number in the list is the leftmost warp.
   # returns: int array
@@ -332,6 +359,17 @@ class Form(Ui_Form):
         rowToSend = self.patternToRow(patternArray)
         #self.totalRows += 1
         return rowToSend
+
+
+# plainweaveRow = patternToRow(plainweave)
+#twillRow = patternToRow(twill)
+#print (plainweaveRow.size)
+#print (twillRow.size)
+
+#weaver = weavingTracker()
+#for i in range(0, 10):
+#    weaving = weaver.weavePattern(_TWILL)
+#    print (weaving)
 
 # MAIN
 if __name__ == "__main__":

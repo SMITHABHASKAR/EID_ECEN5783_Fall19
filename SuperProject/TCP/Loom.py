@@ -37,7 +37,7 @@ class LoomControl(QObject):
 
         self.qsocket.readyRead.connect(self.read)
         self.qsocket.stateChanged.connect(printOutput)
-        self.qsocket.disconnected.connect(Loom.loomDisconnected)
+        self.qsocket.disconnected.connect(self.loom.loomDisconnected)
         
         #self.create_socket() # same options as socket.socket(opts)
         #self.set_reuse_addr()
