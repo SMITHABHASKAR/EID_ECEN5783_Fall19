@@ -19,11 +19,12 @@ from minimalLoomConnection import * # use the functions already built in this fi
 #                                       1   0 
 _TABBY = [[0, 1], [1, 0]]
 _TWILL = [[0, 0, 0, 1], [0, 0, 1, 0], [0, 1, 0, 0], [1, 0, 0, 0]]
+_DOUBLE = [[0, 0, 0, 1], [0, 1, 1, 1], [0, 1, 0, 0], [1, 1, 0, 1]]
 _WAFFLE = [[0, 0, 0, 1, 0, 1, 0, 0], [0, 0, 1, 0, 1, 0, 1, 0], [0, 1, 0, 1, 1, 1, 0, 1], [1, 0, 1, 1, 1, 1, 1, 0], [0, 1, 1, 1, 1, 1, 0, 1], [1, 0, 1, 1, 1, 0, 1, 0], [0, 1, 0, 1, 0, 1, 0, 0], [0, 0, 1, 0, 1, 0, 0, 0]]
 
-patternOptions = [["Tabby",_TABBY], ["Twill",_TWILL], ["Waffle",_WAFFLE]]
+_patternOptions = [["Tabby",_TABBY], ["Twill",_TWILL], ["Doubleweave", _DOUBLE], ["Waffle",_WAFFLE]]
 
-# how to import pattern arrays from patterns.json?
+# TODO: import pattern arrays from patterns.json
 
 # yarns listed as [ SHORTCODE, HEX_COLOR ]
 yarn = [] # if yarn list is blank, fill with default yarn ['A', '0xFFFFFF'] (yarn A, white color)
@@ -52,10 +53,14 @@ class patternDraft(QtWidgets.QGraphicsScene):
         self.patternHeight = 0
         self.patternWidth = 0
 
+        self.marker = None # marker rectangle during weaving
+
         # styles for rendering
         self.linePen = QPen(QColor(128, 128, 128), 3) # gray line w/ weight 4
+        self.noLine = QPen(QColor(0,0,0,0)) # no line
         self.blackFill = QBrush(QColor(0, 0, 0))
         self.whiteFill = QBrush(QColor(255, 255, 255))
+        self.highlight = QBrush(QColor(255, 255, 0, 100)) # translucent yellow
         
     def drawDraft(self, pattern):
         self.clear()
@@ -63,9 +68,9 @@ class patternDraft(QtWidgets.QGraphicsScene):
 
         self.patternHeight = len(pattern)
         self.patternWidth = len(pattern[0])
-        width = self.patternWidth * _BLOCKSIZE
-        height = self.patternHeight * _BLOCKSIZE
-        self.setSceneRect(0, 0, width, height)
+        self.width = self.patternWidth * _BLOCKSIZE
+        self.height = self.patternHeight * _BLOCKSIZE
+        self.setSceneRect(0, 0, self.width, self.height)
         self.setItemIndexMethod(QtWidgets.QGraphicsScene.NoIndex)
         
         for row in range(0, len(self.pattern)):
@@ -78,11 +83,17 @@ class patternDraft(QtWidgets.QGraphicsScene):
                 elif data is 0:
                     fill = self.whiteFill
                 self.addRect(xc, yc, _BLOCKSIZE, _BLOCKSIZE, self.linePen, fill)
+        self.marker = None
     
     def placeMarker(self, row):
-        xm = 0
+        xm = -1*_BLOCKSIZE
         ym = row * _BLOCKSIZE
-        self.addRect(xm, ym, self.patternWidth + 10, _BLOCKSIZE)
+        if (self.marker is None):
+            # create the marker
+            self.marker = self.addRect(xm, ym, self.width + 2*_BLOCKSIZE, _BLOCKSIZE, self.noLine, self.highlight)
+        else:
+            self.marker.setY(ym)
+        #print (self.marker)
     
     #   BUTTON: Pause
 
@@ -110,7 +121,7 @@ class patternDraft(QtWidgets.QGraphicsScene):
 class Ui_Form(QtWidgets.QMainWindow):
   def setupUi(self, Form):
     Form.setObjectName("Loom")
-    Form.resize(500,350)
+    Form.resize(800,350)
 
     self.loomHandler = Loom(_MODULES)
     #self.loomControl = self.loomHandler.loomcontrol # a TCP socket
@@ -119,19 +130,29 @@ class Ui_Form(QtWidgets.QMainWindow):
     self.connectButton.setGeometry(QtCore.QRect(10, 10, 100, 40))
     self.connectButton.setObjectName("connect")
 
+    # display widgets: terminal, draft view, overall project view
+
     self.terminal = QtWidgets.QTextEdit(Form)
     self.terminal.setGeometry(QtCore.QRect(270, 60, 210, 210))
     self.terminal.setObjectName("terminal")
     self.terminal.setReadOnly(True)
+    self.terminal.setVisible(False)
 
     self.draft = patternDraft()
     self.draftView = QtWidgets.QGraphicsView(self.draft, Form)
     self.draftView.setGeometry(QtCore.QRect(10, 70, 200, 200))
     self.draftView.setScene(self.draft)
 
+    self.projectView = QtWidgets.QGraphicsView(Form)
+    self.projectView.setGeometry(QtCore.QRect(220, 60, 550, 210))
+
+    # editing functions
+
     self.selectPattern = QtWidgets.QComboBox(Form)
     self.selectPattern.setGeometry(QtCore.QRect(10, 60, 200, 30))
-    self.selectPattern.addItems(["Select pattern", "Tabby", "Twill", "Waffle"])
+    self.selectPattern.addItem("Select pattern")
+    for pattern in _patternOptions:
+        self.selectPattern.addItem(pattern[0])
     
     # buttons available after connection established
     self.vacuum = QtWidgets.QPushButton(Form)
@@ -167,6 +188,7 @@ class Ui_Form(QtWidgets.QMainWindow):
 
     self.pedals = [self.advance, self.reverse, self.refresh]
     self.activeFunctions = [self.vacuum, self.tabby, self.stop] + self.pedals
+    self.editFunctions = [self.selectPattern]
 
     for button in self.activeFunctions:
         button.setEnabled(False)
@@ -181,6 +203,8 @@ class Ui_Form(QtWidgets.QMainWindow):
     self.tabby.clicked.connect(Form.updateLoomState)
     self.stop.clicked.connect(Form.stopLoom)
     self.advance.clicked.connect(Form.advance)
+    self.refresh.clicked.connect(Form.sendToLoom)
+    self.reverse.clicked.connect(Form.reverse)
     self.selectPattern.currentIndexChanged.connect(Form.updatePatternSelected)
 
     #loom events
@@ -197,7 +221,7 @@ class Ui_Form(QtWidgets.QMainWindow):
     Form.setWindowTitle(_translate("Form", "Loom Connection"))
     self.connectButton.setText(_translate("Form", "Connect"))
     self.vacuum.setText(_translate("Form", "Vacuum Toggle"))
-    self.tabby.setText(_translate("Form", "Start Tabby"))
+    self.tabby.setText(_translate("Form", "Start"))
     self.stop.setText(_translate("Form", "Stop"))
     self.advance.setText(_translate("Form", "Next"))
     self.reverse.setText(_translate("Form", "Back"))
@@ -209,10 +233,13 @@ class Form(Ui_Form):
         self.ui = Ui_Form()
         self.ui.setupUi(self)
 
-        self.patternSelected = _TWILL
+        self.patternSelected = None
         self.lineNumber = 0
         self.patternRow = 0
         self.rowBuffer = None # row buffer, holds data for current row in case of refresh
+
+        self.logging = True # if true, add rows to the image file being built
+        self.weavingLog = np.empty((0,_ROWWIDTH))
 
         self.loomConnected = False
         self.vacuumOn = False
@@ -221,16 +248,18 @@ class Form(Ui_Form):
         #self.ui.draft.drawDraft(self.patternSelected)
 
     def updatePatternSelected(self, pattern):
-        print (pattern)
-        if (pattern is 1):
-            self.patternSelected = _TABBY
-        elif (pattern is 2):
-            self.patternSelected = _TWILL
-        elif (pattern is 3):
-            self.patternSelected = _WAFFLE
+        #print (pattern)
+        #if (pattern is 1):
+        #    self.patternSelected = _TABBY
+        #elif (pattern is 2):
+        #    self.patternSelected = _TWILL
+        #elif (pattern is 3):
+        #    self.patternSelected = _WAFFLE
+        self.patternSelected = _patternOptions[pattern-1][1]
         
         self.ui.draftView.setScene(self.ui.draft)
         self.ui.draft.drawDraft(self.patternSelected)
+        #self.ui.draft.placeMarker(0)
 
     def connectLoom(self):
         # loom = Loom(false); 
@@ -281,15 +310,20 @@ class Form(Ui_Form):
 
     def updateLoomState(self):
         if (self.loomState == "stopped" or self.loomState =="paused"): # transition from stopped to starting
-            for pedal in self.ui.pedals:
-                pedal.setVisible(True) # started weaving, pedal is available
-                pedal.setEnabled(True)
-            self.ui.stop.setVisible(False)
-            self.loomState = "started"
-            self.ui.tabby.setText("Pause")
-            self.vacuum()
-            self.advance() # weaver can step on the pedal, "next" button not necessary
-          #time.sleep(2)
+            if (self.patternSelected is not None):
+                for pedal in self.ui.pedals:
+                    pedal.setVisible(True) # started weaving, pedal is available
+                    pedal.setEnabled(True)
+                self.ui.stop.setVisible(False)
+                for function in self.ui.editFunctions:
+                    function.setEnabled(False)
+                self.loomState = "started"
+                self.ui.tabby.setText("Pause")
+                self.vacuum()
+                if (self.rowBuffer is None):
+                    self.advance()
+                else:
+                    self.sendToLoom() # weaver can step on the pedal, "next" button not necessary
           #self.sendToLoom() # need to wait until vacuum on confirm
         elif (self.loomState == "started"): # transition from started to paused
             self.loomState = "paused"
@@ -298,6 +332,8 @@ class Form(Ui_Form):
             self.ui.tabby.setText("Resume")
             for pedal in self.ui.pedals:
                 pedal.setEnabled(False)
+            for function in self.ui.editFunctions:
+                function.setEnabled(True)
             self.ui.stop.setVisible(True)
   
     def stopLoom(self):
@@ -307,19 +343,35 @@ class Form(Ui_Form):
         for pedal in self.ui.pedals:
             pedal.setVisible(False)
         self.ui.stop.setVisible(False)
-        self.ui.tabby.setText("Start Tabby")
+        self.ui.tabby.setText("Start")
+        # for now, also saves the weaving log image
+        if (self.logging):
+            cv.imwrite('testWeavingLog.bmp', self.weavingLog)
 
     def advance(self):
         #if (self.loomHandler.askingForPick):
           #print ("loom asking for pick")
-        self.lineNumber += 1
         self.rowBuffer = self.renderNextPick()
         self.sendToLoom()
+        self.lineNumber += 1
+        self.ui.draft.placeMarker(self.patternRow)        
+
+    def reverse(self):
+        self.rowBuffer = self.renderNextPick()
+        self.sendToLoom()
+        self.lineNumber -= 1
+        self.ui.draft.placeMarker(self.patternRow)        
 
     def sendToLoom(self):
         if (self.rowBuffer is not None):
             self.ui.loomHandler.sendPick(self.rowBuffer)
             print ("sent pick " +str(self.lineNumber))
+        # TODO: also send a copy of the rowBuffer to AWS or local server
+            if (self.logging):
+                # sending to volatile array which is saved locally to .bmp
+                pixelRow = self.rowToPixels(self.rowBuffer)
+                self.weavingLog = np.insert(self.weavingLog, 0, [pixelRow], axis=0)
+                #print (self.weavingLog)
 
     def renderNextPick(self):
         self.ui.terminal.append("rendering pick " + str(self.lineNumber))
@@ -351,6 +403,24 @@ class Form(Ui_Form):
                 rowToSend = np.append(rowToSend, fill)
 
         # print(rowToSend)
+        return rowToSend
+
+    def rowToPixels(self, row):
+        # rows sent to loom are 0's and 1's,
+        # but a B&W bitmap needs 0 -> 255 for white pixels
+        # and 1 -> 0 for black pixels
+        pixelRow = np.copy(row)
+        #print (len(pixelRow))
+        for i in range(0, len(pixelRow)):
+            if (pixelRow[i] == 0):
+                pixelRow[i] = 255
+            elif (row[i] == 1):
+                pixelRow[i] = 0
+            #print (pixelRow[i], row[i])
+        return pixelRow
+
+    def rowFromImage(self, imageFile):
+        rowToSend = self.rowBuffer
         return rowToSend
 
     def weavePattern(self, patternArray):
