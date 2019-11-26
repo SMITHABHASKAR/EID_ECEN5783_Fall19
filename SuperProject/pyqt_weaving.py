@@ -5,11 +5,14 @@
 import numpy as np
 import cv2 as cv
 import sys
+import json
+import qimage2ndarray as imgarr
 from PyQt5 import QtCore, QtGui, QtWidgets, QtNetwork
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 
 sys.path.insert(1, './TCP') # Loom.py is in the TCP folder
+sys.path.insert(1, './testFiles') # access test images
 
 from Loom import Loom
 from minimalLoomConnection import * # use the functions already built in this file
@@ -34,15 +37,19 @@ _ROWWIDTH = 1320
 _BLOCKSIZE = 20
 
 # diagnostic/debugging settings
-realLoom = True # connect to a dummy TCP server
+realLoom = False # connect to a dummy TCP server if False
 _MODULES = 6
 
 # connection settings
 _PORT = 62000
 _IPADDRESS = '192.168.7.20'
 
-# render pattern draft in QT for tracker
-# from https://stackoverflow.com/questions/39614777/how-to-draw-a-proper-grid-on-pyqt
+#   DISPLAY: Pattern repeat tracker
+#   Function/Appearance:
+#   - shows drawdown for the woven structure
+#   - marker that shows place in the structure
+#   - render pattern draft in QT for tracker
+# references: https://stackoverflow.com/questions/39614777/how-to-draw-a-proper-grid-on-pyqt
 class patternDraft(QtWidgets.QGraphicsScene):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -78,9 +85,9 @@ class patternDraft(QtWidgets.QGraphicsScene):
                 xc = cell * _BLOCKSIZE
                 yc = row * _BLOCKSIZE
                 data = pattern[row][cell] # 0 or 1
-                if data is 1:
+                if data is 1 or data is True:
                     fill = self.blackFill
-                elif data is 0:
+                elif data is 0 or data is False:
                     fill = self.whiteFill
                 self.addRect(xc, yc, _BLOCKSIZE, _BLOCKSIZE, self.linePen, fill)
         self.marker = None
@@ -99,17 +106,7 @@ class patternDraft(QtWidgets.QGraphicsScene):
 
     #   DISPLAY: Row number
 
-    #   DISPLAY: Pattern repeat tracker
-    #   Function/Appearance:
-    #   - shows drawdown for the woven structure
-    #   - marker that shows place in the structure
-
     #   DISPLAY: Yarn for this row (solid color or short code)
-
-    #   DISPLAY: Weaving Progress/History (similar to entrance menu's)
-    #   Function/Appearance:
-    #   - the current row being woven (highlighted/boxed?)
-    #   - below the current row, the previous rows that had been woven this session (grayed out?)
 
     #   DISPLAY (or buttons?): pedals (reverse, refresh, advance)
     #   Function/Appearance:
@@ -119,113 +116,110 @@ class patternDraft(QtWidgets.QGraphicsScene):
     #   - Advance: send loom the next row in design
 
 class Ui_Form(QtWidgets.QMainWindow):
-  def setupUi(self, Form):
-    Form.setObjectName("Loom")
-    Form.resize(800,350)
+    def setupUi(self, Form):
+        Form.setObjectName("Loom")
+        Form.resize(800,350)
 
-    self.loomHandler = Loom(_MODULES)
-    #self.loomControl = self.loomHandler.loomcontrol # a TCP socket
+        self.loomHandler = Loom(_MODULES)
 
-    self.connectButton = QtWidgets.QPushButton(Form)
-    self.connectButton.setGeometry(QtCore.QRect(10, 10, 100, 40))
-    self.connectButton.setObjectName("connect")
+        self.connectButton = QtWidgets.QPushButton(Form)
+        self.connectButton.setGeometry(QtCore.QRect(10, 10, 100, 40))
+        self.connectButton.setObjectName("connect")
+        self.connectButton.clicked.connect(Form.connectLoom)
 
-    # display widgets: terminal, draft view, overall project view
+        # display widgets: terminal, draft view, overall project view
 
-    self.terminal = QtWidgets.QTextEdit(Form)
-    self.terminal.setGeometry(QtCore.QRect(270, 60, 210, 210))
-    self.terminal.setObjectName("terminal")
-    self.terminal.setReadOnly(True)
-    self.terminal.setVisible(False)
+        self.terminal = QtWidgets.QTextEdit(Form)
+        self.terminal.setGeometry(QtCore.QRect(270, 60, 210, 210))
+        self.terminal.setObjectName("terminal")
+        self.terminal.setReadOnly(True)
+        self.terminal.setVisible(False)
 
-    self.draft = patternDraft()
-    self.draftView = QtWidgets.QGraphicsView(self.draft, Form)
-    self.draftView.setGeometry(QtCore.QRect(10, 70, 200, 200))
-    self.draftView.setScene(self.draft)
+        self.draft = patternDraft()
+        self.draftView = QtWidgets.QGraphicsView(self.draft, Form)
+        self.draftView.setGeometry(QtCore.QRect(10, 70, 200, 200))
+        self.draftView.setScene(self.draft)
 
-    self.projectView = QtWidgets.QGraphicsView(Form)
-    self.projectView.setGeometry(QtCore.QRect(220, 60, 550, 210))
+        self.projectView = QtWidgets.QGraphicsView(Form)
+        self.projectView.setGeometry(QtCore.QRect(220, 60, 550, 210))
+        self.projViewLabel = QtWidgets.QLabel(self.projectView)
+        self.projViewLabel.setGeometry(QtCore.QRect(0, 0, 550, 210))
 
-    # editing functions
+        # editing functions
 
-    self.selectPattern = QtWidgets.QComboBox(Form)
-    self.selectPattern.setGeometry(QtCore.QRect(10, 60, 200, 30))
-    self.selectPattern.addItem("Select pattern")
-    for pattern in _patternOptions:
-        self.selectPattern.addItem(pattern[0])
-    
-    # buttons available after connection established
-    self.vacuum = QtWidgets.QPushButton(Form)
-    self.vacuum.setGeometry(QtCore.QRect(120, 10, 100, 40))
-    self.vacuum.setObjectName("vacuumToggle")
-    self.vacuum.setEnabled(False)
+        self.selectPattern = QtWidgets.QComboBox(Form)
+        self.selectPattern.setGeometry(QtCore.QRect(10, 60, 200, 30))
+        self.selectPattern.addItem("Select pattern")
+        #for pattern in _patternOptions:
+        #    self.selectPattern.addItem(pattern[0])
+        self.selectPattern.currentIndexChanged.connect(Form.updatePatternSelected)
 
-    self.tabby = QtWidgets.QPushButton(Form)
-    self.tabby.setGeometry(QtCore.QRect(230, 10, 100, 40))
-    self.tabby.setObjectName("tabby")
-    self.tabby.setEnabled(False)
+        self.openFile = QtWidgets.QPushButton(Form)
+        self.openFile.setGeometry(QtCore.QRect(9, 268, 202, 30))
+        self.openFile.clicked.connect(Form.loadWeaveFile)
+        
+        # buttons available after connection established
+        self.vacuum = QtWidgets.QPushButton(Form)
+        self.vacuum.setGeometry(QtCore.QRect(120, 10, 100, 40))
+        self.vacuum.setObjectName("vacuumToggle")
+        self.vacuum.clicked.connect(Form.vacuum)
 
-    self.stop = QtWidgets.QPushButton(Form)
-    self.stop.setGeometry(QtCore.QRect(340, 10, 100, 40))
-    self.stop.setObjectName("stopButton")
-    self.stop.setEnabled(False)
-    self.stop.setVisible(False) # hidden until paused = true
+        self.start = QtWidgets.QPushButton(Form)
+        self.start.setGeometry(QtCore.QRect(230, 10, 100, 40))
+        self.start.setObjectName("startButton")
+        self.start.clicked.connect(Form.updateLoomState)
 
-    # emulate pedal with GUI button
-    self.advance = QtWidgets.QPushButton(Form)
-    self.advance.setGeometry(QtCore.QRect(290, 280, 60, 60))
-    self.advance.setEnabled(False)
-    self.advance.setVisible(False) # hidden until started = true
+        self.stop = QtWidgets.QPushButton(Form)
+        self.stop.setGeometry(QtCore.QRect(340, 10, 100, 40))
+        self.stop.setObjectName("stopButton")
+        self.stop.setVisible(False) # hidden until paused = true
+        self.stop.clicked.connect(Form.stopLoom)
 
-    # reverse pedal
-    self.reverse = QtWidgets.QPushButton(Form)
-    self.reverse.setGeometry(QtCore.QRect(150, 280, 60, 60))
-    self.reverse.setVisible(False)
+        # advance pedal
+        self.advance = QtWidgets.QPushButton(Form)
+        self.advance.setGeometry(QtCore.QRect(290, 280, 60, 60))
+        self.advance.clicked.connect(Form.advance)
 
-    # refresh pedal
-    self.refresh = QtWidgets.QPushButton(Form)
-    self.refresh.setGeometry(QtCore.QRect(220, 280, 60, 60))
+        # reverse pedal
+        self.reverse = QtWidgets.QPushButton(Form)
+        self.reverse.setGeometry(QtCore.QRect(150, 280, 60, 60))
+        self.reverse.clicked.connect(Form.reverse)
 
-    self.pedals = [self.advance, self.reverse, self.refresh]
-    self.activeFunctions = [self.vacuum, self.tabby, self.stop] + self.pedals
-    self.editFunctions = [self.selectPattern]
+        # refresh pedal
+        self.refresh = QtWidgets.QPushButton(Form)
+        self.refresh.setGeometry(QtCore.QRect(220, 280, 60, 60))
+        self.refresh.clicked.connect(Form.sendToLoom)
 
-    for button in self.activeFunctions:
-        button.setEnabled(False)
-    for pedal in self.pedals:
-        pedal.setVisible(False)
+        self.pedals = [self.advance, self.reverse, self.refresh]
+        self.activeFunctions = [self.vacuum, self.start, self.stop] + self.pedals
+        self.editFunctions = [self.selectPattern]
 
-    self.retranslateUi(Form)
+        for button in self.activeFunctions: # enabled when loom connected
+            button.setEnabled(False)
+        for pedal in self.pedals: # hidden until loom state = started weaving
+            pedal.setVisible(False)
 
-    #button connections
-    self.connectButton.clicked.connect(Form.connectLoom)
-    self.vacuum.clicked.connect(Form.vacuum)
-    self.tabby.clicked.connect(Form.updateLoomState)
-    self.stop.clicked.connect(Form.stopLoom)
-    self.advance.clicked.connect(Form.advance)
-    self.refresh.clicked.connect(Form.sendToLoom)
-    self.reverse.clicked.connect(Form.reverse)
-    self.selectPattern.currentIndexChanged.connect(Form.updatePatternSelected)
+        #loom events
+        self.loomHandler.messageFromLoom.connect(Form.logData)
+        self.loomHandler.loomConnected.connect(Form.activateUI)
+        self.loomHandler.loomDisconnected.connect(Form.deactivateUI)
+        self.loomHandler.pickRequest.connect(Form.advance)
+        self.loomHandler.vacuumChanged.connect(Form.sendToLoom)
 
-    #loom events
-    self.loomHandler.messageFromLoom.connect(Form.logData)
-    self.loomHandler.loomConnected.connect(Form.activateUI)
-    self.loomHandler.loomDisconnected.connect(Form.deactivateUI)
-    self.loomHandler.pickRequest.connect(Form.advance)
-    self.loomHandler.vacuumChanged.connect(Form.sendToLoom)
+        QtCore.QMetaObject.connectSlotsByName(Form)
+        self.retranslateUi(Form)
 
-    QtCore.QMetaObject.connectSlotsByName(Form)
-
-  def retranslateUi(self, Form):
-    _translate = QtCore.QCoreApplication.translate
-    Form.setWindowTitle(_translate("Form", "Loom Connection"))
-    self.connectButton.setText(_translate("Form", "Connect"))
-    self.vacuum.setText(_translate("Form", "Vacuum Toggle"))
-    self.tabby.setText(_translate("Form", "Start"))
-    self.stop.setText(_translate("Form", "Stop"))
-    self.advance.setText(_translate("Form", "Next"))
-    self.reverse.setText(_translate("Form", "Back"))
-    self.refresh.setText(_translate("Form", "Again"))
+    def retranslateUi(self, Form):
+        _translate = QtCore.QCoreApplication.translate
+        Form.setWindowTitle(_translate("Form", "Loom Connection"))
+        self.connectButton.setText(_translate("Form", "Connect"))
+        self.vacuum.setText(_translate("Form", "Vacuum Toggle"))
+        self.start.setText(_translate("Form", "Start"))
+        self.stop.setText(_translate("Form", "Stop"))
+        self.advance.setText(_translate("Form", "Next"))
+        self.reverse.setText(_translate("Form", "Back"))
+        self.refresh.setText(_translate("Form", "Again"))
+        self.openFile.setText(_translate("Form", "Load file"))
 
 class Form(Ui_Form):
     def __init__ (self, parent = None):
@@ -234,18 +228,40 @@ class Form(Ui_Form):
         self.ui.setupUi(self)
 
         self.patternSelected = None
-        self.lineNumber = 0
+        self.lineNumber = -1
         self.patternRow = 0
         self.rowBuffer = None # row buffer, holds data for current row in case of refresh
 
         self.logging = True # if true, add rows to the image file being built
         self.weavingLog = np.empty((0,_ROWWIDTH))
+        self.weaveFile = None
 
         self.loomConnected = False
         self.vacuumOn = False
         self.loomState = "stopped" # stopped, started, paused
 
-        #self.ui.draft.drawDraft(self.patternSelected)
+        self.loadPatternFile()
+
+    def loadPatternFile(self):
+        # read JSON file and parse
+        with open('patterns.json', 'r') as patternFile:
+            data = patternFile.read() 
+            self.patternList = json.loads(data) # a list of dicts
+
+        #for pattern in self.patternList:
+        #    print ("pattern name: " + str(pattern['name']))
+        #    self.ui.selectPattern.addItem(pattern['name'])
+        #    print ("pattern data: " + str(pattern['pattern']))
+
+    def loadWeaveFile(self):
+        # open QFileDialog
+        file = QtWidgets.QFileDialog.getOpenFileName(self, 'Open File', 'c:\\', "Image files (*.bmp *.tif)")
+        print (file) # tuple ('file path', 'ext')
+        if (file[0] is not ''):
+            print ("user loaded file")
+            self.weaveFile = QPixmap(file[0])
+            self.ui.projViewLabel.setPixmap(self.weaveFile)
+        else: print ("user cancelled")
 
     def updatePatternSelected(self, pattern):
         #print (pattern)
@@ -255,15 +271,13 @@ class Form(Ui_Form):
         #    self.patternSelected = _TWILL
         #elif (pattern is 3):
         #    self.patternSelected = _WAFFLE
-        self.patternSelected = _patternOptions[pattern-1][1]
+        self.patternSelected = self.patternList[pattern-1]['pattern']#_patternOptions[pattern-1][1]
         
         self.ui.draftView.setScene(self.ui.draft)
         self.ui.draft.drawDraft(self.patternSelected)
-        #self.ui.draft.placeMarker(0)
 
     def connectLoom(self):
-        # loom = Loom(false); 
-        # second parameter is whether or not the loom is "real" -- 
+        # whether or not the loom is "real" -- 
         # use false for debugging (sending to the fake node loom; 
         # change to true to communicate with the actual loom
         if not realLoom:
@@ -291,10 +305,21 @@ class Form(Ui_Form):
 
     def logData(self, event):
         print ("logging received in terminal")
-        newEntry = str(event)#self.ui.loomHandler.received)
+        newEntry = str(event)
         print ("got new entry from loomHandler")
         self.ui.terminal.append(newEntry)
         print ("appended to terminal")
+
+#   DISPLAY: Weaving Progress/History (similar to entrance menu's)
+#   Function/Appearance:
+#   - the current row being woven (highlighted/boxed?)
+#   - below the current row, the previous rows that had been woven this session (grayed out?)
+
+    def updateWeavingLog(self):
+        img = imgarr.array2qimage(self.weavingLog) # a QtGui.QImage
+        pixmap = QtGui.QPixmap(img)
+        pixmap.setDevicePixelRatio(0.5) # set pixmap raio = half of real image -> pixmap pixels are magnified 2x
+        self.ui.projViewLabel.setPixmap(pixmap)
 
     def activateUI(self):
         print ("connection successful! enabling functions")
@@ -351,15 +376,15 @@ class Form(Ui_Form):
     def advance(self):
         #if (self.loomHandler.askingForPick):
           #print ("loom asking for pick")
+        self.lineNumber += 1
         self.rowBuffer = self.renderNextPick()
         self.sendToLoom()
-        self.lineNumber += 1
         self.ui.draft.placeMarker(self.patternRow)        
 
     def reverse(self):
+        self.lineNumber -= 1
         self.rowBuffer = self.renderNextPick()
         self.sendToLoom()
-        self.lineNumber -= 1
         self.ui.draft.placeMarker(self.patternRow)        
 
     def sendToLoom(self):
@@ -371,6 +396,7 @@ class Form(Ui_Form):
                 # sending to volatile array which is saved locally to .bmp
                 pixelRow = self.rowToPixels(self.rowBuffer)
                 self.weavingLog = np.insert(self.weavingLog, 0, [pixelRow], axis=0)
+                self.updateWeavingLog()
                 #print (self.weavingLog)
 
     def renderNextPick(self):
@@ -379,8 +405,9 @@ class Form(Ui_Form):
         #return self.weavePattern(_TWILL)
         return self.weavePattern(self.patternSelected)
 
-  # loom takes picks as a list of 1 or 0. The first number in the list is the leftmost warp.
-  # returns: int array
+    # loom takes picks as a list of 1 or 0. The first number in the list is the leftmost warp.
+    # returns: int array
+    # SAME AS self.weavePattern(_TABBY)
     def tabby(self, threads, rowNumber):
         pattern = []
         for i in range(0, threads):
@@ -394,6 +421,12 @@ class Form(Ui_Form):
     # return a pick filled with the row of a pattern
     def patternToRow(self, pattern):
         fill = pattern[self.patternRow] # slice the pattern array
+        #for i in range(0, len(fill)):
+        #    if fill[i] is True:
+        #        fill[i] = 1
+        #    elif fill[i] is False:
+        #        fill[i] = 0
+        #print (fill)
         rowToSend = np.append(fill, fill)
         while (rowToSend.size < _ROWWIDTH):
             rem = _ROWWIDTH - rowToSend.size
@@ -401,7 +434,6 @@ class Form(Ui_Form):
                 rowToSend = np.append(rowToSend, fill[0:rem])
             else:
                 rowToSend = np.append(rowToSend, fill)
-
         # print(rowToSend)
         return rowToSend
 
@@ -409,42 +441,32 @@ class Form(Ui_Form):
         # rows sent to loom are 0's and 1's,
         # but a B&W bitmap needs 0 -> 255 for white pixels
         # and 1 -> 0 for black pixels
-        pixelRow = np.copy(row)
+        pixelRow = np.empty(len(row), dtype=int)
         #print (len(pixelRow))
         for i in range(0, len(pixelRow)):
-            if (pixelRow[i] == 0):
+            if (row[i] == False):
+                #print ("false")
                 pixelRow[i] = 255
-            elif (row[i] == 1):
+            elif (row[i] == True):
+                #print ("true")
                 pixelRow[i] = 0
-            #print (pixelRow[i], row[i])
+            # print (pixelRow[i], row[i])
         return pixelRow
 
     def rowFromImage(self, imageFile):
+        # TODO: fix this
         rowToSend = self.rowBuffer
         return rowToSend
 
     def weavePattern(self, patternArray):
-        self.patternRow = self.lineNumber % len(patternArray)
-        #rowToSend = self.patternArray[self.patternRow] # just print the unit
+        self.patternRow = self.lineNumber % len(patternArray) # fix this, pattern repeat should mod on number of rows since the pattern started, not the global number of rows
         rowToSend = self.patternToRow(patternArray)
-        #self.totalRows += 1
         return rowToSend
-
-
-# plainweaveRow = patternToRow(plainweave)
-#twillRow = patternToRow(twill)
-#print (plainweaveRow.size)
-#print (twillRow.size)
-
-#weaver = weavingTracker()
-#for i in range(0, 10):
-#    weaving = weaver.weavePattern(_TWILL)
-#    print (weaving)
 
 # MAIN
 if __name__ == "__main__":
-  # how to make Python put out more useful info when crashing
-  # from: https://www.reddit.com/r/learnpython/comments/7or35q/questionpyqt5threading_my_gui_crash_whit_no_error/
+    # how to make Python put out more useful info when crashing
+    # from: https://www.reddit.com/r/learnpython/comments/7or35q/questionpyqt5threading_my_gui_crash_whit_no_error/
     sys._excepthook = sys.excepthook 
     def exception_hook(exctype, value, traceback):
         print(exctype, value, traceback)
