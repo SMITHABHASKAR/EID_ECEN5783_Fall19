@@ -27,8 +27,6 @@ _WAFFLE = [[0, 0, 0, 1, 0, 1, 0, 0], [0, 0, 1, 0, 1, 0, 1, 0], [0, 1, 0, 1, 1, 1
 
 _patternOptions = [["Tabby",_TABBY], ["Twill",_TWILL], ["Doubleweave", _DOUBLE], ["Waffle",_WAFFLE]]
 
-# TODO: import pattern arrays from patterns.json
-
 # yarns listed as [ SHORTCODE, HEX_COLOR ]
 yarn = [] # if yarn list is blank, fill with default yarn ['A', '0xFFFFFF'] (yarn A, white color)
 twoYarns = [['A', '0xFFFFFF'], ['B', '0xFF0000']]
@@ -37,12 +35,48 @@ _ROWWIDTH = 1320
 _BLOCKSIZE = 20
 
 # diagnostic/debugging settings
-realLoom = False # connect to a dummy TCP server if False
+realLoom = True # connect to a dummy TCP server if False
 _MODULES = 6
 
 # connection settings
 _PORT = 62000
 _IPADDRESS = '192.168.7.20'
+
+class patternEditor(QtWidgets.QGraphicsView):
+    def __init__(self, pattern=None, parent=None):
+        super().__init__(parent)
+
+        self.draft = patternDraft()
+        self.setScene(self.draft)
+
+        if (pattern is not None):
+            self.draft.drawDraft(pattern, True)
+
+    #def draw
+
+class patternCell(QtWidgets.QGraphicsRectItem):
+    def __init__(self, col, row, size=_BLOCKSIZE, parent=None):
+        super().__init__(col*size, row*size, size, size, parent)
+
+        self.blackFill = QBrush(QColor(0, 0, 0))
+        self.whiteFill = QBrush(QColor(255, 255, 255))
+
+        self.col = col
+        self.row = row
+       
+        self.data = False
+        self.fill = self.whiteFill
+        self.draft = None
+ 
+    def mousePressEvent(self, event):
+        self.data = not self.data
+        if (self.fill == self.whiteFill):
+            self.fill = self.blackFill
+        else:
+            self.fill = self.whiteFill
+        self.setBrush(self.fill)
+        if (self.draft != None):
+            self.draft.pattern[self.row][self.col] = self.data
 
 #   DISPLAY: Pattern repeat tracker
 #   Function/Appearance:
@@ -55,8 +89,8 @@ class patternDraft(QtWidgets.QGraphicsScene):
         super().__init__(*args, **kwargs)
 
         self.squares = [] # elements in the scene
-        self.pattern = []
-        self.blockSize = 20
+        self.pattern = None
+        self.blockSize = _BLOCKSIZE
         self.patternHeight = 0
         self.patternWidth = 0
 
@@ -68,29 +102,59 @@ class patternDraft(QtWidgets.QGraphicsScene):
         self.blackFill = QBrush(QColor(0, 0, 0))
         self.whiteFill = QBrush(QColor(255, 255, 255))
         self.highlight = QBrush(QColor(255, 255, 0, 100)) # translucent yellow
+
+    def addCell(self, data, x, y, size, pen, fill):
+        cell = patternCell(x, y, size)
+        cell.data = data
+        cell.setPen(pen)
+        cell.setBrush(fill)
+        cell.draft = self # cell links back to draft to edit data
+        self.addItem(cell)
+        return cell
         
-    def drawDraft(self, pattern):
+    def drawDraft(self, pattern, editing=True):
         self.clear()
+        self.marker = None
         self.pattern = pattern # 2D int array
+        #print (self.pattern)
 
         self.patternHeight = len(pattern)
         self.patternWidth = len(pattern[0])
-        self.width = self.patternWidth * _BLOCKSIZE
-        self.height = self.patternHeight * _BLOCKSIZE
+    
+        self.squares = [[None]*self.patternWidth]*self.patternHeight # copy pattern list's shape
+        #print (self.squares)
+        self.width = self.patternWidth * self.blockSize
+        self.height = self.patternHeight * self.blockSize
         self.setSceneRect(0, 0, self.width, self.height)
         self.setItemIndexMethod(QtWidgets.QGraphicsScene.NoIndex)
         
         for row in range(0, len(self.pattern)):
             for cell in range(0, len(pattern[row])):
-                xc = cell * _BLOCKSIZE
-                yc = row * _BLOCKSIZE
+                xc = cell * self.blockSize
+                yc = row * self.blockSize
                 data = pattern[row][cell] # 0 or 1
                 if data is 1 or data is True:
                     fill = self.blackFill
                 elif data is 0 or data is False:
                     fill = self.whiteFill
-                self.addRect(xc, yc, _BLOCKSIZE, _BLOCKSIZE, self.linePen, fill)
-        self.marker = None
+                self.squares[row][cell] = self.addCell(data, cell, row, self.blockSize, self.linePen, fill)        
+                #if (not editing): # if this draft has been initiated in an editor
+                    #self.squares[row][cell].setAcceptedMouseButtons(0)
+                    #self.squares[row][cell].mousePressEvent.connect(self.updateCell)
+        #print (self.squares)
+        #print (self.items())
+
+    def drawBlankDraft(self, width, height):
+        if (width != 0 and height != 0):
+            emptyPattern = np.zeros((height, width), dtype=int)
+            self.drawDraft(emptyPattern, True)
+            
+    #def mousePressEvent(self, event):
+    #    self.updateCell(event)
+    #    print (self.mouseGrabberItem())
+
+    def updateCell(self, event):
+        print ("cell clicked at", event.scenePos().x(), ",", event.scenePos().y())
     
     def placeMarker(self, row):
         xm = -1*_BLOCKSIZE
@@ -242,15 +306,16 @@ class Form(Ui_Form):
 
         self.loadPatternFile()
 
+    # import pattern arrays from patterns.json
     def loadPatternFile(self):
         # read JSON file and parse
         with open('patterns.json', 'r') as patternFile:
             data = patternFile.read() 
             self.patternList = json.loads(data) # a list of dicts
 
-        #for pattern in self.patternList:
+        for pattern in self.patternList:
         #    print ("pattern name: " + str(pattern['name']))
-        #    self.ui.selectPattern.addItem(pattern['name'])
+            self.ui.selectPattern.addItem(pattern['name'])
         #    print ("pattern data: " + str(pattern['pattern']))
 
     def loadWeaveFile(self):
@@ -274,7 +339,7 @@ class Form(Ui_Form):
         self.patternSelected = self.patternList[pattern-1]['pattern']#_patternOptions[pattern-1][1]
         
         self.ui.draftView.setScene(self.ui.draft)
-        self.ui.draft.drawDraft(self.patternSelected)
+        self.ui.draft.drawDraft(self.patternSelected, True)
 
     def connectLoom(self):
         # whether or not the loom is "real" -- 
@@ -343,18 +408,18 @@ class Form(Ui_Form):
                 for function in self.ui.editFunctions:
                     function.setEnabled(False)
                 self.loomState = "started"
-                self.ui.tabby.setText("Pause")
+                self.ui.start.setText("Pause")
                 self.vacuum()
                 if (self.rowBuffer is None):
                     self.advance()
                 else:
-                    self.sendToLoom() # weaver can step on the pedal, "next" button not necessary
+                    self.sendToLoom(False) # weaver can step on the pedal, "next" button not necessary
           #self.sendToLoom() # need to wait until vacuum on confirm
         elif (self.loomState == "started"): # transition from started to paused
             self.loomState = "paused"
             self.vacuum()
           # need to resend current pick here, did not advance
-            self.ui.tabby.setText("Resume")
+            self.ui.start.setText("Resume")
             for pedal in self.ui.pedals:
                 pedal.setEnabled(False)
             for function in self.ui.editFunctions:
@@ -368,7 +433,7 @@ class Form(Ui_Form):
         for pedal in self.ui.pedals:
             pedal.setVisible(False)
         self.ui.stop.setVisible(False)
-        self.ui.tabby.setText("Start")
+        self.ui.start.setText("Start")
         # for now, also saves the weaving log image
         if (self.logging):
             cv.imwrite('testWeavingLog.bmp', self.weavingLog)
@@ -387,12 +452,12 @@ class Form(Ui_Form):
         self.sendToLoom()
         self.ui.draft.placeMarker(self.patternRow)        
 
-    def sendToLoom(self):
+    def sendToLoom(self, copy=True):
         if (self.rowBuffer is not None):
             self.ui.loomHandler.sendPick(self.rowBuffer)
             print ("sent pick " +str(self.lineNumber))
         # TODO: also send a copy of the rowBuffer to AWS or local server
-            if (self.logging):
+            if (self.logging and copy):
                 # sending to volatile array which is saved locally to .bmp
                 pixelRow = self.rowToPixels(self.rowBuffer)
                 self.weavingLog = np.insert(self.weavingLog, 0, [pixelRow], axis=0)
@@ -426,7 +491,7 @@ class Form(Ui_Form):
         #        fill[i] = 1
         #    elif fill[i] is False:
         #        fill[i] = 0
-        #print (fill)
+        print ("pattern row:", fill)
         rowToSend = np.append(fill, fill)
         while (rowToSend.size < _ROWWIDTH):
             rem = _ROWWIDTH - rowToSend.size
@@ -453,7 +518,17 @@ class Form(Ui_Form):
             # print (pixelRow[i], row[i])
         return pixelRow
 
-    def rowFromImage(self, imageFile):
+    # inverse function of pixelsToRow
+    def pixelsToRow(self, pixelRow):
+        row = np.empty(len(pixelRow), dtype=int)
+        for i in range(0, len(row)):
+            if (pixelRow[i] == 255):
+                row[i] = False
+            elif (pixelRow[i] == 0):
+                row[i] = True
+        return row
+
+    def rowFromImage(self):
         # TODO: fix this
         rowToSend = self.rowBuffer
         return rowToSend
