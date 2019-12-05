@@ -7,6 +7,12 @@ _WARP_REP_2 = [[0, 0, 1, 1], [1, 1, 0, 0]]
 _WARP_REP_HALF = [[0, 0, 1, 1], [0, 0, 0, 0], [1, 1, 0, 0], [0, 0, 0, 0]]
 _DOUBLE = [[0, 0, 0, 1], [0, 1, 1, 1], [0, 1, 0, 0], [1, 1, 0, 1]]
 
+class Yarn(object):
+    def __init__(self, name="", code="", color='0xFFFFFF'):
+        self.name = name # a string
+        self.code = code # a 3-char or shorter code
+        self.color = color # a string containing a hex code
+
 class Pattern(list):
     def __init__(self):
         self.name = ""
