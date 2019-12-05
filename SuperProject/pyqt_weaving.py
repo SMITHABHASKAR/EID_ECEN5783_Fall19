@@ -310,12 +310,13 @@ class Form(Ui_Form):
         if (self.designMode == "generate"):
             img = imgarr.array2qimage(self.weavingLog) # a QtGui.QImage
             pixmap = QtGui.QPixmap(img)
-            pixmap.setDevicePixelRatio(0.5) # set pixmap ratio = half of real image -> pixmap pixels are magnified 2x
+            #pixmap.setDevicePixelRatio(0.5) # set pixmap ratio = half of real image -> pixmap pixels are magnified 2x
             #self.ui.project.clear()
             if (self.logPixmap is None):
-                self.logPixmap = self.ui.project.addPixmap(pixmap)        
+                self.logPixmap = self.ui.project.addPixmap(pixmap)
             else:
                 self.logPixmap.setPixmap(pixmap)
+            self.logPixmap.setScale(2)
         elif (self.designMode == "load"):
             print ("advance progress marker")
 
