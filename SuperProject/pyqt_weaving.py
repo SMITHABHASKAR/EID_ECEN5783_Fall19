@@ -26,8 +26,9 @@ _TABBY = [[0, 1], [1, 0]]
 _TWILL = [[0, 0, 0, 1], [0, 0, 1, 0], [0, 1, 0, 0], [1, 0, 0, 0]]
 _DOUBLE = [[0, 0, 0, 1], [0, 1, 1, 1], [0, 1, 0, 0], [1, 1, 0, 1]]
 _WAFFLE = [[0, 0, 0, 1, 0, 1, 0, 0], [0, 0, 1, 0, 1, 0, 1, 0], [0, 1, 0, 1, 1, 1, 0, 1], [1, 0, 1, 1, 1, 1, 1, 0], [0, 1, 1, 1, 1, 1, 0, 1], [1, 0, 1, 1, 1, 0, 1, 0], [0, 1, 0, 1, 0, 1, 0, 0], [0, 0, 1, 0, 1, 0, 0, 0]]
+_ALLUP = [[1, 1, 1, 1]]
 
-_patternOptions = [Pattern("Tabby",_TABBY), Pattern("Twill",_TWILL), Pattern("Doubleweave", _DOUBLE), Pattern("Waffle",_WAFFLE)]
+_patternOptions = [Pattern("Tabby",_TABBY), Pattern("Twill",_TWILL), Pattern("Doubleweave", _DOUBLE), Pattern("Waffle",_WAFFLE), Pattern("All Up x 4", _ALLUP)]
 
 # yarns listed as [ SHORTCODE, HEX_COLOR ]
 yarn = [] # if yarn list is blank, fill with default yarn ['A', '0xFFFFFF'] (yarn A, white color)
@@ -38,7 +39,7 @@ _BLOCKSIZE = 20
 
 # diagnostic/debugging settings
 terminalHidden = True
-realLoom = False # connect to a dummy TCP server if False
+realLoom = True # connect to a dummy TCP server if False
 _MODULES = 6
 
 # connection settings
@@ -245,13 +246,6 @@ class Form(Ui_Form):
         else: print ("user cancelled")
 
     def updatePatternSelected(self, pattern):
-        #print (pattern)
-        #if (pattern is 1):
-        #    self.patternSelected = _TABBY
-        #elif (pattern is 2):
-        #    self.patternSelected = _TWILL
-        #elif (pattern is 3):
-        #    self.patternSelected = _WAFFLE
         selection = self.patternList[pattern-1]
         if (isinstance(selection, dict)):
             self.patternSelected = selection['pattern']#_patternOptions[pattern-1][1]
@@ -310,13 +304,12 @@ class Form(Ui_Form):
         if (self.designMode == "generate"):
             img = imgarr.array2qimage(self.weavingLog) # a QtGui.QImage
             pixmap = QtGui.QPixmap(img)
-            #pixmap.setDevicePixelRatio(0.5) # set pixmap ratio = half of real image -> pixmap pixels are magnified 2x
+            pixmap.setDevicePixelRatio(0.5) # set pixmap ratio = half of real image -> pixmap pixels are magnified 2x
             #self.ui.project.clear()
             if (self.logPixmap is None):
-                self.logPixmap = self.ui.project.addPixmap(pixmap)
+                self.logPixmap = self.ui.project.addPixmap(pixmap)        
             else:
                 self.logPixmap.setPixmap(pixmap)
-            self.logPixmap.setScale(2)
         elif (self.designMode == "load"):
             print ("advance progress marker")
 
@@ -511,4 +504,4 @@ if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)
     w = Form()
     w.show()
-    app.exec_()
+    sys.exit(app.exec_())
