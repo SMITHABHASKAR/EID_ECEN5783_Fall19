@@ -1,3 +1,4 @@
+import sys, os, time
 from gpiozero import *
 from signal import pause
 from PyQt5 import QtCore, QtGui, QtWidgets, QtNetwork
@@ -57,17 +58,17 @@ class Ui_Form(QMainWindow):
         # advance pedal
         self.advance = QtWidgets.QPushButton(Form)
         self.advance.setGeometry(QtCore.QRect(440, 280, 60, 60))
-        self.advance.clicked.connect(Form.advance)
+        #self.advance.clicked.connect(Form.advance)
 
         # reverse pedal
         self.reverse = QtWidgets.QPushButton(Form)
         self.reverse.setGeometry(QtCore.QRect(300, 280, 60, 60))
-        self.reverse.clicked.connect(Form.reverse)
+        #self.reverse.clicked.connect(Form.reverse)
 
         # refresh pedal
         self.refresh = QtWidgets.QPushButton(Form)
         self.refresh.setGeometry(QtCore.QRect(370, 280, 60, 60))
-        self.refresh.clicked.connect(Form.refresh)
+        #self.refresh.clicked.connect(Form.refresh)
 
         self.pedals = [self.advance, self.reverse, self.refresh]
 
@@ -75,6 +76,8 @@ class Ui_Form(QMainWindow):
         self.pedalHandler.refreshPedalEvent.connect(Form.refresh)
         self.pedalHandler.reversePedalEvent.connect(Form.reverse)
         self.pedalHandler.loomRelayEvent.connect(Form.pedalStep)
+        
+        self.retranslateUi(Form)
         
     def retranslateUi(self, Form):
         _translate = QtCore.QCoreApplication.translate
@@ -91,13 +94,20 @@ class Form(Ui_Form):
 
     def advance(self):
         print ("GUI: advance pedal pressed")
+        self.ui.advance.setDown(True)
     def refresh(self):
         print ("GUI: refresh pedal pressed")
+        self.ui.refresh.setDown(True)
     def reverse(self):
         print ("GUI: reverse pedal pressed")
+        self.ui.reverse.setDown(True)
 
     def pedalStep(self):
+        time.sleep(0.1)
         print ("GUI: sent signal to loom relay")
+        for pedal in self.ui.pedals:
+            if (pedal.isDown()):
+                pedal.setDown(False)
 
 if __name__ == "__main__":
     #p = pedalHandler()
