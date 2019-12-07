@@ -47,6 +47,76 @@ class pedalHandler(QObject):
         self.loomRelay.blink(0.3, 0.3, 1) # turn on/off once to simulate pedal step on/off
         self.loomRelayEvent.emit()
 
+class Ui_Form(QMainWindow):
+    def setupUi(self, Form):
+        Form.setObjectName("Pedal Testing with QT")
+        Form.resize(800, 480)
+
+        self.pedalHandler = pedalHandler()
+
+        # advance pedal
+        self.advance = QtWidgets.QPushButton(Form)
+        self.advance.setGeometry(QtCore.QRect(440, 280, 60, 60))
+        self.advance.clicked.connect(Form.advance)
+
+        # reverse pedal
+        self.reverse = QtWidgets.QPushButton(Form)
+        self.reverse.setGeometry(QtCore.QRect(300, 280, 60, 60))
+        self.reverse.clicked.connect(Form.reverse)
+
+        # refresh pedal
+        self.refresh = QtWidgets.QPushButton(Form)
+        self.refresh.setGeometry(QtCore.QRect(370, 280, 60, 60))
+        self.refresh.clicked.connect(Form.refresh)
+
+        self.pedals = [self.advance, self.reverse, self.refresh]
+
+        self.pedalHandler.advancePedalEvent.connect(Form.advance)
+        self.pedalHandler.refreshPedalEvent.connect(Form.refresh)
+        self.pedalHandler.reversePedalEvent.connect(Form.reverse)
+        self.pedalHandler.loomRelayEvent.connect(Form.pedalStep)
+        
+    def retranslateUi(self, Form):
+        _translate = QtCore.QCoreApplication.translate
+        Form.setWindowTitle(_translate("Form", "Pedals in QT"))
+        self.advance.setText(_translate("Form", "Next"))
+        self.reverse.setText(_translate("Form", "Back"))
+        self.refresh.setText(_translate("Form", "Again"))
+
+class Form(Ui_Form):
+    def __init__(self, parent = None):
+        super(Form, self).__init__(parent)
+        self.ui = Ui_Form()
+        self.ui.setupUi(self)
+
+    def advance(self):
+        print ("GUI: advance pedal pressed")
+    def refresh(self):
+        print ("GUI: refresh pedal pressed")
+    def reverse(self):
+        print ("GUI: reverse pedal pressed")
+
+    def pedalStep(self):
+        print ("GUI: sent signal to loom relay")
+
 if __name__ == "__main__":
-    p = pedalHandler()
-    pause()
+    #p = pedalHandler()
+    #pause()
+    sys._excepthook = sys.excepthook 
+    def exception_hook(exctype, value, traceback):
+        print(exctype, value, traceback)
+        sys._excepthook(exctype, value, traceback) 
+        sys.exit(1) 
+    sys.excepthook = exception_hook 
+
+    class AppWindow(QtWidgets.QDialog):
+        def __init__(self): 
+            super().__init__()
+            self.ui = Ui_Form() 
+            self.ui.setupUi(self)
+            self.show()
+
+    app = QtWidgets.QApplication(sys.argv)
+    w = Form()
+    w.show()
+    sys.exit(app.exec_())

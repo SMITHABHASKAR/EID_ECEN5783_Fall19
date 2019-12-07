@@ -60,5 +60,35 @@
                 [true, false, true, true],
                 [false, false, true, false]
                ]
+  },
+  {
+  	"name": "Waffle Weave",
+  	"id": 5,
+  	"favorite": true,
+  	"height": 8,
+  	"width": 8,
+  	"pattern": [
+		  		[false, false, false, true, false, true, false, false], 
+		  		[false, false, true, false, true, false, true, false], 
+		  		[false, true, false, true, true, true, false, true], 
+		  		[true, false, true, true, true, true, true, false], 
+		  		[false, true, true, true, true, true, false, true], 
+		  		[true, false, true, true, true, false, true, false], 
+		  		[false, true, false, true, false, true, false, false], 
+		  		[false, false, true, false, true, false, false, false]
+			   ]
+  },
+  {
+  	"name": "3/1 Twill",
+  	"id": 6,
+  	"favorite": false,
+  	"height": 4,
+  	"width": 4,
+  	"pattern": [
+		  		[true, true, true, false], 
+		  		[true, true, false, true], 
+		  		[true, false, true, true], 
+		  		[false, true, true, true]
+		  	   ]
   }
 ]
