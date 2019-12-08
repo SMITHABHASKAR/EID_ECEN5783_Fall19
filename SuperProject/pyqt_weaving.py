@@ -240,7 +240,7 @@ class Form(Ui_Form):
 
     def loadWeaveFile(self):
         # open QFileDialog
-        file = QtWidgets.QFileDialog.getOpenFileName(self, 'Open File', 'c:\\', "Image files (*.bmp *.tif)")
+        file = QtWidgets.QFileDialog.getOpenFileName(self, 'Open File', './', "Image files (*.bmp *.tif)")
         print (file) # tuple ('file path', 'ext')
         if (file[0] is not ''):
             print ("user loaded file")
@@ -318,11 +318,12 @@ class Form(Ui_Form):
             pixmap.setDevicePixelRatio(0.5) # set pixmap ratio = half of real image -> pixmap pixels are magnified 2x
             #self.ui.project.clear()
             if (self.logPixmap is None):
-                self.logPixmap = self.ui.project.addPixmap(pixmap)        
+                self.logPixmap = self.ui.project.addPixmap(pixmap)
+                self.logPixmap.setScale(2)
             else:
                 self.logPixmap.setPixmap(pixmap)
-        elif (self.designMode == "load"):
-            print ("advance progress marker")
+        #elif (self.designMode == "load"):
+            #print ("advance progress marker")
 
     def activateUI(self):
         print ("connection successful! enabling functions")
@@ -383,10 +384,12 @@ class Form(Ui_Form):
         self.ui.start.setText("Start")
         # for now, also saves the weaving log image
         #if (self.logging):
-        #    cv.imwrite('testWeavingLog.bmp', self.weavingLog)
-        saveFile, ok = saveDialog.getSaveResult()
-        print (saveFile, ok)
-
+        if (self.weavingLog.size > 0):
+            saveFile, ok = saveDialog.getSaveResult()
+            print (saveFile, ok)
+            if (ok):
+                cv.imwrite(saveFile[0], self.weavingLog)
+            
     def advance(self):
         if (self.pedalState == "ready"):
             self.pedalState = "advance" # pedal state reset after loom sends "ready" signal

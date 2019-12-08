@@ -203,23 +203,26 @@ class saveDialog(QtWidgets.QDialog):
 
         # BUTTONS: Save/Ok and Cancel
         self.buttons = QtWidgets.QDialogButtonBox(
-            QDialogButtonBox.Save | QDialogButtonBox.Cancel,
+            QtWidgets.QDialogButtonBox.Save | QtWidgets.QDialogButtonBox.Cancel,
             Qt.Horizontal, self)
         self.buttons.accepted.connect(self.accept)
+        self.buttons.accepted.connect(self.getSaveImage)
         self.buttons.rejected.connect(self.reject)
 
         layout.addWidget(self.text)
         layout.addWidget(self.buttons)
 
-    def saveImage(self): 
+    def getSaveImage(self): 
         self.saveImage = QtWidgets.QFileDialog.getSaveFileName(self, 'Save File As', "./weavingLog.bmp", "Image files (*.bmp)")
         return self.saveImage[0] # just return the file name, not the filter
 
     # return: whether or not the user saved, if the user rejected save dialog, still return something indicating that the UI had asked, so the user can quit without getting a message about "unsaved progress"
+    @staticmethod
     def getSaveResult(parent=None):
         dialog = saveDialog(parent)
         result = dialog.exec_() # creates dialog as modal
-        fileName = dialog.saveImage()
+        #print ("save dialog result:",result)
+        fileName = dialog.saveImage
         return (fileName, result == QtWidgets.QDialog.Accepted)
 
 class patternDialog(QtWidgets.QDialog):
