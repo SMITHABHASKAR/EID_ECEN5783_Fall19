@@ -45,7 +45,13 @@ class pedalHandler(QObject):
 
     def sendToRelay(self):
         print ("sending message to relay")
-        self.loomRelay.blink(0.3, 0.3, 1) # turn on/off once to simulate pedal step on/off
+        if (self.loomRelay.value == 0):
+            self.loomRelay.value = 1
+        elif (self.loomRelay.value == 1):
+            self.loomRelay.value = 0
+        else:
+            print ("invalid relay value")
+        #self.loomRelay.blink(0.3, 0.3, 1) # turn on/off once to simulate pedal step on/off
         self.loomRelayEvent.emit()
 
 if __name__ == "__main__":

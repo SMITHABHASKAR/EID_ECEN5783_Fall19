@@ -158,7 +158,7 @@ class Ui_Form(QtWidgets.QMainWindow):
         self.pedalHandler.advancePedalEvent.connect(Form.advance)
         self.pedalHandler.refreshPedalEvent.connect(Form.refresh)
         self.pedalHandler.reversePedalEvent.connect(Form.reverse)
-        self.pedalHandler.loomRelayEvent.connect(Form.pedalStep)
+        #self.pedalHandler.loomRelayEvent.connect(Form.pedalStep)
 
         QtCore.QMetaObject.connectSlotsByName(Form)
         self.retranslateUi(Form)
@@ -410,15 +410,15 @@ class Form(Ui_Form):
             print ("GUI: not ready for pedal")
         
     def sendToLoom(self, copy=True):
-        if (self.pedalState = "advance"):
+        if (self.pedalState == "advance"):
             self.lineNumber += 1
             self.rowBuffer = self.renderNextPick()
             self.ui.advance.setDown(False)
-        elif (self.pedalState = "reverse"):                
+        elif (self.pedalState == "reverse"):                
             self.lineNumber -= 1
             self.rowBuffer = self.renderNextPick()
             self.ui.reverse.setDown(False)
-        elif (self.pedalState = "refresh"):
+        elif (self.pedalState == "refresh"):
             self.ui.refresh.setDown(False)
         else:
             print ("not a pedal press???")
