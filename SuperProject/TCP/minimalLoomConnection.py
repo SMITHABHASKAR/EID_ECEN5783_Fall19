@@ -9,7 +9,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets, QtNetwork
 from PyQt5.QtCore import pyqtSlot
 
 # diagnostic/debugging settings
-realLoom = True # connect to a dummy TCP server
+realLoom = False # connect to a dummy TCP server
 _MODULES = 6
 
 # connection settings

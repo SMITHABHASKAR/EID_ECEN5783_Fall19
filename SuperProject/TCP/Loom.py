@@ -23,7 +23,7 @@ def printOutput(output):
 # this QThread represents the TCP connection to the loom
 # job 1: keeping TCP socket alive (TODO?)
 # job 2: handle incoming data from loom as they come in (with a simple socket, the LoomHandler had to call socket.recv everytime)
-# job 3: handle things to be written to the loom when the Loom
+# job 3: handle things to be written to the loom when the Loom is ready
 class LoomControl(QObject):
     def __init__(self, loom, parent=None):
         super(LoomControl, self).__init__(parent)
@@ -36,7 +36,7 @@ class LoomControl(QObject):
         self.port = None
 
         self.qsocket.readyRead.connect(self.read)
-        self.qsocket.stateChanged.connect(printOutput)
+        self.qsocket.stateChanged.connect(self.connectionStatus)
         self.qsocket.disconnected.connect(self.loom.loomDisconnected)
         
         #self.create_socket() # same options as socket.socket(opts)
@@ -65,6 +65,12 @@ class LoomControl(QObject):
             print(qdata)
             self.loom.messageFromLoom.emit(str(qdata))
             print ("emitted messageFromLoom signal")
+
+    def connectionStatus(self, state):
+        # QTcpSocket states: 0 - not connected
+        print ("socket state:", state)
+        if (state == 0 and self.port != 62000):
+            self.loom.loomDisconnected.emit()
 
 # make loom a QObject so that it can handle events in a GUI-friendly way
 class Loom(QtCore.QObject): 

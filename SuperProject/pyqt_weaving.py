@@ -13,6 +13,7 @@ from PyQt5.QtGui import *
 
 from weavingWidgets import * # patternDraft
 from designFileEditing import *
+from pedalGPIO import * #pedalHandler
 
 sys.path.insert(1, './TCP') # Loom.py is in the TCP folder
 sys.path.insert(1, './testFiles') # access test images
@@ -63,9 +64,10 @@ _IPADDRESS = '192.168.7.20'
 class Ui_Form(QtWidgets.QMainWindow):
     def setupUi(self, Form):
         Form.setObjectName("Loom")
-        Form.resize(800,350)
+        Form.resize(800, 480)
 
         self.loomHandler = Loom(_MODULES)
+        self.pedalHandler = pedalHandler()
 
         self.connectButton = QtWidgets.QPushButton(Form)
         self.connectButton.setGeometry(QtCore.QRect(10, 10, 100, 40))
@@ -124,17 +126,17 @@ class Ui_Form(QtWidgets.QMainWindow):
         # advance pedal
         self.advance = QtWidgets.QPushButton(Form)
         self.advance.setGeometry(QtCore.QRect(440, 280, 60, 60))
-        self.advance.clicked.connect(Form.advance)
+        #self.advance.clicked.connect(Form.advance)
 
         # reverse pedal
         self.reverse = QtWidgets.QPushButton(Form)
         self.reverse.setGeometry(QtCore.QRect(300, 280, 60, 60))
-        self.reverse.clicked.connect(Form.reverse)
+        #self.reverse.clicked.connect(Form.reverse) # what should this do if user presses on-screen button instead of the pedal?
 
         # refresh pedal
         self.refresh = QtWidgets.QPushButton(Form)
         self.refresh.setGeometry(QtCore.QRect(370, 280, 60, 60))
-        self.refresh.clicked.connect(Form.sendToLoom)
+        #self.refresh.clicked.connect(Form.sendToLoom) # change this so it won't collide with pedals
 
         self.pedals = [self.advance, self.reverse, self.refresh]
         self.activeFunctions = [self.vacuum, self.start, self.stop] + self.pedals
@@ -149,8 +151,14 @@ class Ui_Form(QtWidgets.QMainWindow):
         self.loomHandler.messageFromLoom.connect(Form.logData)
         self.loomHandler.loomConnected.connect(Form.activateUI)
         self.loomHandler.loomDisconnected.connect(Form.deactivateUI)
-        self.loomHandler.pickRequest.connect(Form.advance)
+        self.loomHandler.pickRequest.connect(Form.sendToLoom)
         self.loomHandler.vacuumChanged.connect(Form.sendToLoom)
+
+        # pedal events
+        self.pedalHandler.advancePedalEvent.connect(Form.advance)
+        self.pedalHandler.refreshPedalEvent.connect(Form.refresh)
+        self.pedalHandler.reversePedalEvent.connect(Form.reverse)
+        self.pedalHandler.loomRelayEvent.connect(Form.pedalStep)
 
         QtCore.QMetaObject.connectSlotsByName(Form)
         self.retranslateUi(Form)
@@ -198,7 +206,9 @@ class Form(Ui_Form):
         self.loomConnected = False
         self.vacuumOn = False
         self.loomState = "stopped" # stopped, started, paused
+        self.pedalState = "ready" # "ready" to accept pedal press ("advance", "reverse", "refresh")
 
+        self.connectLoom()
         self.loadPatternFile()
 
     def switchDesignMode(self):
@@ -364,6 +374,7 @@ class Form(Ui_Form):
   
     def stopLoom(self):
         self.loomState = "stopped"
+        self.lineNumber = 0 # reset progress
         if (self.vacuumOn):
             self.vacuum()
         for pedal in self.ui.pedals:
@@ -375,21 +386,44 @@ class Form(Ui_Form):
             cv.imwrite('testWeavingLog.bmp', self.weavingLog)
 
     def advance(self):
-        #if (self.loomHandler.askingForPick):
-          #print ("loom asking for pick")
-        self.lineNumber += 1
-        self.rowBuffer = self.renderNextPick()
-        self.sendToLoom()
-        #if (self.designMode == "generate"):
-        #    self.ui.draft.placeMarker(self.patternRow)
-        #self.ui.project.placeMarker(self.lineNumber)
+        if (self.pedalState == "ready"):
+            self.pedalState = "advance" # pedal state reset after loom sends "ready" signal
+            print ("GUI: advance pedal pressed")
+            self.ui.advance.setDown(True)
+        else:
+            print ("GUI: not ready for pedal")
 
     def reverse(self):
-        self.lineNumber -= 1
-        self.rowBuffer = self.renderNextPick()
-        self.sendToLoom()
+        if (self.pedalState == "ready"):
+            self.pedalState = "reverse" 
+            print ("GUI: reverse pedal pressed")
+            self.ui.reverse.setDown(True)
+        else:
+            print ("GUI: not ready for pedal")
+
+    def refresh(self):
+        if (self.pedalState == "ready"):
+            self.pedalState = "refresh"
+            print ("GUI: refresh pedal pressed")
+            self.ui.refresh.setDown(True)
+        else:
+            print ("GUI: not ready for pedal")
         
     def sendToLoom(self, copy=True):
+        if (self.pedalState = "advance"):
+            self.lineNumber += 1
+            self.rowBuffer = self.renderNextPick()
+            self.ui.advance.setDown(False)
+        elif (self.pedalState = "reverse"):                
+            self.lineNumber -= 1
+            self.rowBuffer = self.renderNextPick()
+            self.ui.reverse.setDown(False)
+        elif (self.pedalState = "refresh"):
+            self.ui.refresh.setDown(False)
+        else:
+            print ("not a pedal press???")
+            return
+            
         if (self.rowBuffer is not None):
             self.ui.loomHandler.sendPick(self.rowBuffer)
             print ("sent pick " +str(self.lineNumber))
@@ -403,6 +437,8 @@ class Form(Ui_Form):
         if (self.designMode == "generate"):
             self.ui.draft.placeMarker(self.patternRow)
         self.ui.project.placeMarker(self.lineNumber)
+
+        self.pedalState = "ready" # reset to wait for next press
 
     def renderNextPick(self):
         self.ui.terminal.append("rendering pick " + str(self.lineNumber))
