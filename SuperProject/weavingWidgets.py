@@ -1,5 +1,7 @@
 # PyQT widgets for handling weaving patterns: displaying, editing, logging user input/progress, handling transactions with other devices/AWS cloud
 
+import cv2 as cv
+
 from PyQt5 import QtCore, QtGui, QtWidgets, QtNetwork
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
@@ -188,3 +190,49 @@ class projectProgress(QtWidgets.QGraphicsScene):
             self.marker = self.addRect(xm, ym, self.width() + 2*self.blockSize, self.blockSize, self.noLine, self.highlight)
         else:
             self.marker.setY(-row*self.blockSize)
+
+# custom QDialog reference: https://stackoverflow.com/questions/18196799/how-can-i-show-a-pyqt-modal-dialog-and-get-data-out-of-its-controls-once-its-clo
+class saveDialog(QtWidgets.QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        layout = QtWidgets.QVBoxLayout(self)
+
+        # INPUT: image file name
+        self.saveImage = None
+        self.text = QtWidgets.QLabel("Save your progress?")
+
+        # BUTTONS: Save/Ok and Cancel
+        self.buttons = QtWidgets.QDialogButtonBox(
+            QDialogButtonBox.Save | QDialogButtonBox.Cancel,
+            Qt.Horizontal, self)
+        self.buttons.accepted.connect(self.accept)
+        self.buttons.rejected.connect(self.reject)
+
+        layout.addWidget(self.text)
+        layout.addWidget(self.buttons)
+
+    def saveImage(self): 
+        self.saveImage = QtWidgets.QFileDialog.getSaveFileName(self, 'Save File As', "./weavingLog.bmp", "Image files (*.bmp)")
+        return self.saveImage[0] # just return the file name, not the filter
+
+    # return: whether or not the user saved, if the user rejected save dialog, still return something indicating that the UI had asked, so the user can quit without getting a message about "unsaved progress"
+    def getSaveResult(parent=None):
+        dialog = saveDialog(parent)
+        result = dialog.exec_() # creates dialog as modal
+        fileName = dialog.saveImage()
+        return (fileName, result == QtWidgets.QDialog.Accepted)
+
+class patternDialog(QtWidgets.QDialog):
+    def __init__(self, existing=None, parent=None): # can be initialized with an existing Pattern object to edit, instead of creating new
+        super().__init__(parent)
+
+        # INPUT/DISPLAY: pattern graphics view
+
+        # INPUTS: WIDTH x HEIGHT (QSpinBoxes)
+
+        # BUTTONS: Save/Ok and Cancel
+        self.buttons = QtWidgets.QDialogButtonBox(
+            QDialogButtonBox.Save | QDialogButtonBox.Cancel,
+            Qt.Horizontal, self)
+        self.buttons.accepted.connect(self.accept)
+        self.buttons.rejected.connect(self.reject)

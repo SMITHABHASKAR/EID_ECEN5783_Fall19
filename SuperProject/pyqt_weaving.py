@@ -11,7 +11,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets, QtNetwork
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 
-from weavingWidgets import * # patternDraft
+from weavingWidgets import * # patternDraft, custom dialogs
 from designFileEditing import *
 from pedalGPIO import * #pedalHandler
 
@@ -382,8 +382,10 @@ class Form(Ui_Form):
         self.ui.stop.setVisible(False)
         self.ui.start.setText("Start")
         # for now, also saves the weaving log image
-        if (self.logging):
-            cv.imwrite('testWeavingLog.bmp', self.weavingLog)
+        #if (self.logging):
+        #    cv.imwrite('testWeavingLog.bmp', self.weavingLog)
+        saveFile, ok = saveDialog.getSaveResult()
+        print (saveFile, ok)
 
     def advance(self):
         if (self.pedalState == "ready"):
