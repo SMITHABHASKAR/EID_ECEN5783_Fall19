@@ -1,14 +1,21 @@
 # PyQT widgets for handling weaving patterns: displaying, editing, logging user input/progress, handling transactions with other devices/AWS cloud
 
+import sys, os
 import cv2 as cv
 
 from PyQt5 import QtCore, QtGui, QtWidgets, QtNetwork
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
+from PyQt5.QtWidgets import *
 
 from designFileEditing import * # Yarn, Pattern, Region, WeaveDesign
 
 _BLOCKSIZE = 20
+
+_TABBY = [[0, 1], [1, 0]]
+_TWILL = [[0, 0, 0, 1], [0, 0, 1, 0], [0, 1, 0, 0], [1, 0, 0, 0]]
+_DOUBLE = [[0, 0, 0, 1], [0, 1, 1, 1], [0, 1, 0, 0], [1, 1, 0, 1]]
+_WAFFLE = [[0, 0, 0, 1, 0, 1, 0, 0], [0, 0, 1, 0, 1, 0, 1, 0], [0, 1, 0, 1, 1, 1, 0, 1], [1, 0, 1, 1, 1, 1, 1, 0], [0, 1, 1, 1, 1, 1, 0, 1], [1, 0, 1, 1, 1, 0, 1, 0], [0, 1, 0, 1, 0, 1, 0, 0], [0, 0, 1, 0, 1, 0, 0, 0]]
 
 #   DISPLAY: Pattern selection, tracker, and editor
 #   Appearance:
@@ -20,7 +27,7 @@ _BLOCKSIZE = 20
 #   Organization:
 #   - patternCell = the actual QRect elements
 #   - patternDraft = organizing and listing the elements
-#   - patternEditor = viewing the elements
+#   - patternViewEdit = viewing the elements
 #  references: https://stackoverflow.com/questions/39614777/how-to-draw-a-proper-grid-on-pyqt
 
 class patternViewEdit(QtWidgets.QGraphicsView):
@@ -102,7 +109,7 @@ class patternDraft(QtWidgets.QGraphicsScene):
     def drawDraft(self, pattern, editing=True):
         self.clear()
         self.marker = None
-        self.pattern = pattern # 2D int array
+        self.pattern = pattern # 2D int array or ndarray
         #print (self.pattern)
 
         self.patternHeight = len(pattern)
@@ -131,14 +138,43 @@ class patternDraft(QtWidgets.QGraphicsScene):
         #print (self.items())
 
     def drawBlankDraft(self, width, height):
-        if (width != 0 and height != 0):
+        if (width > 0 and height > 0):
             emptyPattern = np.zeros((height, width), dtype=int)
             self.drawDraft(emptyPattern, True)
 
     def updateCell(self, row, col, data):
-        if (self.pattern != None):
+        if (self.pattern is not None):
             self.pattern[row][col] = data
-            print ("updated cell at", row, ",", col, "to", data)
+            #print ("updated cell at", row, ",", col, "to", data)
+
+    def setDraftWidth(self, newWidth):
+        if (newWidth > 0):
+            newPattern = np.zeros((self.patternHeight, newWidth), dtype=int)
+            for row in range(0, len(newPattern)):
+                for cell in range(0, len(newPattern[row])):
+                    if (cell < len(self.pattern[row])):
+                        newPattern[row][cell] = self.pattern[row][cell]
+        #print ("resized pattern width:", newPattern)
+        self.drawDraft(newPattern, True)
+
+    def setDraftHeight(self, newHeight):
+        if (newHeight > 0):
+            newPattern = np.zeros((newHeight, self.patternWidth), dtype=int)
+            for row in range(0, len(newPattern)):
+                if (row < len(self.pattern)):
+                    for cell in range(0, len(newPattern[row])):
+                        newPattern[row][cell] = self.pattern[row][cell]
+        self.drawDraft(newPattern, True)
+
+    def resizeDraft(self, newWidth, newHeight):
+        if (newWidth > 0 and newHeight > 0):
+            newPattern = np.zeros((newHeight, newWidth), dtype=int)
+            for row in range(0, len(newPattern)):
+                if (row < len(self.pattern)):
+                    for cell in range(0, len(newPattern[row])):
+                        if (cell < len(self.pattern[row])):
+                            newPattern[row][cell] = self.pattern[row][cell]
+        print ("resized pattern:", newPattern)
     
     def placeMarker(self, row):
         print ("placing marker on row", row)
@@ -203,7 +239,7 @@ class saveDialog(QtWidgets.QDialog):
 
         # BUTTONS: Save/Ok and Cancel
         self.buttons = QtWidgets.QDialogButtonBox(
-            QtWidgets.QDialogButtonBox.Save | QtWidgets.QDialogButtonBox.Cancel,
+            QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel,
             Qt.Horizontal, self)
         self.buttons.accepted.connect(self.accept)
         self.buttons.accepted.connect(self.getSaveImage)
@@ -228,14 +264,107 @@ class saveDialog(QtWidgets.QDialog):
 class patternDialog(QtWidgets.QDialog):
     def __init__(self, existing=None, parent=None): # can be initialized with an existing Pattern object to edit, instead of creating new
         super().__init__(parent)
+        layout = QVBoxLayout(self)
+        self.resize(300, 400)
+
+        self.pattern = existing
+
+        # INPUT: pattern name
+        self.nameLabel = QLabel("Pattern name:")
+        self.patternName = QLineEdit(self)
+
+        self.patternName.textChanged.connect(self.validateSave)
 
         # INPUT/DISPLAY: pattern graphics view
+        self.draft = patternDraft()
+        self.draftView = patternViewEdit(self)
+        self.draftView.setScene(self.draft)
 
         # INPUTS: WIDTH x HEIGHT (QSpinBoxes)
+        self.widthLabel = QLabel("Pattern width:")
+        self.widthControl = QSpinBox(self)
+        self.widthControl.setMinimum(0)
+        self.widthControl.setMaximum(16) # not sure how wide of a pattern we can handle just yet
+        #self.widthControl.resize(50, 20)
+
+        self.heightLabel = QLabel("Pattern height:")        
+        self.heightControl = QSpinBox(self)
+        self.heightControl.setMinimum(0)
+        self.heightControl.setMaximum(20)
+        #self.heightControl.setGeometry()
+
+        self.widthControl.valueChanged.connect(self.draft.setDraftWidth)
+        self.heightControl.valueChanged.connect(self.draft.setDraftHeight)
+
+        # set defaults if creating new pattern (existing = None)
+        if (self.pattern is None):
+            self.draft.drawBlankDraft(4, 4)
+            self.pattern = self.draft.pattern
+        else:
+            self.draft.drawDraft(existing, True)
+        
+        self.widthControl.setValue(self.draft.patternWidth)
+        self.heightControl.setValue(self.draft.patternHeight)
+            
 
         # BUTTONS: Save/Ok and Cancel
         self.buttons = QtWidgets.QDialogButtonBox(
             QDialogButtonBox.Save | QDialogButtonBox.Cancel,
             Qt.Horizontal, self)
+        self.save = self.buttons.buttons()[0]
+        self.save.setEnabled(False)
         self.buttons.accepted.connect(self.accept)
         self.buttons.rejected.connect(self.reject)
+        
+        for widget in [self.nameLabel, self.patternName, self.draftView, self.widthLabel, self.widthControl, self.heightLabel, self.heightControl, self.buttons]:
+            layout.addWidget(widget)
+            #widget.update()
+        
+    def validateSave(self):
+        if (self.patternName.text() != ''):
+            self.save.setEnabled(True)
+        else:
+            self.save.setEnabled(False)
+
+    @staticmethod
+    def createNewPattern(parent=None):
+        dialog = patternDialog(None, parent)
+        result = dialog.exec_()
+        patternName = dialog.patternName.text()
+        newPattern = dialog.draft.pattern
+        return (patternName, newPattern, result == QtWidgets.QDialog.Accepted)
+
+    @staticmethod
+    def editPattern(existing, parent=None):
+        dialog = patternDialog(existing, parent)
+        result = dialog.exec_()
+        patternName = dialog.patternName.text()
+        editedPattern = dialog.draft.pattern
+        return (patternName, editedPattern, result == QtWidgets.QDialog.Accepted)
+            
+if __name__ == '__main__':
+    sys._excepthook = sys.excepthook 
+    def exception_hook(exctype, value, traceback):
+        print(exctype, value, traceback)
+        sys._excepthook(exctype, value, traceback) 
+        sys.exit(1) 
+    sys.excepthook = exception_hook 
+
+    class AppWindow(QtWidgets.QDialog):
+        def __init__(self): 
+            super().__init__()
+            self.ui = Ui_Form() 
+            self.ui.setupUi(self)
+            self.show()
+
+    app = QtWidgets.QApplication(sys.argv)
+    #patternName, newPattern, result = patternDialog.createNewPattern()
+    #print ("pattern name:", patternName)
+    #print ("new pattern data:", newPattern)
+    #print ("result:", result)
+    patternName, editedPattern, result = patternDialog.editPattern(_WAFFLE)
+    print ("pattern name:", patternName)
+    print ("new pattern data:", editedPattern)
+    print ("result:", result)
+    
+    sys.exit()

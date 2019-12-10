@@ -1,5 +1,9 @@
 # GUI portion: during weaving
 
+# diagnostic/debugging settings
+terminalHidden = True
+realLoom = False # connect to a dummy TCP server if False
+_MODULES = 6
 # Details/state description: vacuum is on, threads are raised, weaver should have shuttles ready and does not have hands available except for simple button presses
 
 import numpy as np
@@ -13,7 +17,8 @@ from PyQt5.QtGui import *
 
 from weavingWidgets import * # patternDraft, custom dialogs
 from designFileEditing import *
-from pedalGPIO import * #pedalHandler
+if (realLoom):
+    from pedalGPIO import * #pedalHandler
 
 sys.path.insert(1, './TCP') # Loom.py is in the TCP folder
 sys.path.insert(1, './testFiles') # access test images
@@ -39,11 +44,6 @@ twoYarns = [['A', '0xFFFFFF'], ['B', '0xFF0000']]
 _ROWWIDTH = 1320
 _BLOCKSIZE = 20
 
-# diagnostic/debugging settings
-terminalHidden = True
-realLoom = True # connect to a dummy TCP server if False
-_MODULES = 6
-
 # connection settings
 _PORT = 62000
 _IPADDRESS = '192.168.7.20'
@@ -65,9 +65,6 @@ class Ui_Form(QtWidgets.QMainWindow):
     def setupUi(self, Form):
         Form.setObjectName("Loom")
         Form.resize(800, 480)
-
-        self.loomHandler = Loom(_MODULES)
-        self.pedalHandler = pedalHandler()
 
         self.connectButton = QtWidgets.QPushButton(Form)
         self.connectButton.setGeometry(QtCore.QRect(10, 10, 100, 40))
@@ -126,17 +123,14 @@ class Ui_Form(QtWidgets.QMainWindow):
         # advance pedal
         self.advance = QtWidgets.QPushButton(Form)
         self.advance.setGeometry(QtCore.QRect(440, 280, 60, 60))
-        #self.advance.clicked.connect(Form.advance)
 
         # reverse pedal
         self.reverse = QtWidgets.QPushButton(Form)
         self.reverse.setGeometry(QtCore.QRect(300, 280, 60, 60))
-        #self.reverse.clicked.connect(Form.reverse) # what should this do if user presses on-screen button instead of the pedal?
 
         # refresh pedal
         self.refresh = QtWidgets.QPushButton(Form)
         self.refresh.setGeometry(QtCore.QRect(370, 280, 60, 60))
-        #self.refresh.clicked.connect(Form.sendToLoom) # change this so it won't collide with pedals
 
         self.pedals = [self.advance, self.reverse, self.refresh]
         self.activeFunctions = [self.vacuum, self.start, self.stop] + self.pedals
@@ -148,17 +142,25 @@ class Ui_Form(QtWidgets.QMainWindow):
             pedal.setVisible(False)
 
         #loom events
+        self.loomHandler = Loom(_MODULES)
         self.loomHandler.messageFromLoom.connect(Form.logData)
         self.loomHandler.loomConnected.connect(Form.activateUI)
-        self.loomHandler.loomDisconnected.connect(Form.deactivateUI)
         self.loomHandler.pickRequest.connect(Form.sendToLoom)
         self.loomHandler.vacuumChanged.connect(Form.sendToLoom)
 
         # pedal events
-        self.pedalHandler.advancePedalEvent.connect(Form.advance)
-        self.pedalHandler.refreshPedalEvent.connect(Form.refresh)
-        self.pedalHandler.reversePedalEvent.connect(Form.reverse)
-        #self.pedalHandler.loomRelayEvent.connect(Form.pedalStep)
+        if (realLoom):
+            self.pedalHandler = pedalHandler()
+            self.pedalHandler.advancePedalEvent.connect(Form.advance)
+            self.pedalHandler.refreshPedalEvent.connect(Form.refresh)
+            self.pedalHandler.reversePedalEvent.connect(Form.reverse)
+            #self.pedalHandler.loomRelayEvent.connect(Form.pedalStep)
+        else: # not real loom, have buttons work
+            # also don't check for a good connection
+            self.loomHandler.loomDisconnected.connect(Form.deactivateUI)
+            self.advance.clicked.connect(Form.advance)
+            self.reverse.clicked.connect(Form.reverse) # what should this do if user presses on-screen button instead of the pedal?
+            self.refresh.clicked.connect(Form.sendToLoom) # change this so it won't collide with pedals
 
         QtCore.QMetaObject.connectSlotsByName(Form)
         self.retranslateUi(Form)
@@ -166,12 +168,10 @@ class Ui_Form(QtWidgets.QMainWindow):
     def loadFileView(self):
         self.draftView.setVisible(False)
         self.projectView.setGeometry(QtCore.QRect(10, 60, 770, 210))
-#        self.projViewLabel.setGeometry(QtCore.QRect(0, 0, 770, 210))
 
     def generateFileView(self):
         self.draftView.setVisible(True)
         self.projectView.setGeometry(QtCore.QRect(220, 60, 550, 210))
-#        self.projViewLabel.setGeometry(QtCore.QRect(0, 0, 550, 210))
 
     def retranslateUi(self, Form):
         _translate = QtCore.QCoreApplication.translate
@@ -397,6 +397,8 @@ class Form(Ui_Form):
             self.ui.advance.setDown(True)
         else:
             print ("GUI: not ready for pedal")
+        if (not realLoom): # if not connected to real loom, don't wait for ack
+            self.sendToLoom()
 
     def reverse(self):
         if (self.pedalState == "ready"):
@@ -405,6 +407,8 @@ class Form(Ui_Form):
             self.ui.reverse.setDown(True)
         else:
             print ("GUI: not ready for pedal")
+        if (not realLoom):
+            self.sendToLoom()
 
     def refresh(self):
         if (self.pedalState == "ready"):
@@ -413,6 +417,8 @@ class Form(Ui_Form):
             self.ui.refresh.setDown(True)
         else:
             print ("GUI: not ready for pedal")
+        if (not realLoom):
+            self.sendToLoom()
         
     def sendToLoom(self, copy=True):
         if (self.pedalState == "advance"):
