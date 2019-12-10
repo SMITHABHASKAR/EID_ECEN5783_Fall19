@@ -44,7 +44,6 @@ class App(QWidget):
                print(text)
                
        def buttonexit(self):
-           
            QtCore.QCoreApplication.instance().quit()
            
 if __name__=='__main__':

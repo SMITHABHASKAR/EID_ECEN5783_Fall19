@@ -10,17 +10,32 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 from PyQt5.uic import *
 from PyQt5 import QtCore,QtWidgets
+from PIL import Image
+import PIL
+import qrcode.image.pil
+from qrcode import *
+
 
  
 class qrForm(QMainWindow):
     def __init__(self):
         super().__init__()
  
-        self.setWindowTitle("QrGenerator")
+        self.setWindowTitle("LOOM GUI")
+        QLabel().setText("welcome to Loom GUI Configuration")
+        label=QLabel(self)
+        
+        #self.setGeometry(600,500,250,250)
+        
+               
  
         self.setMinimumSize(QtCore.QSize(600,800))
         self.setMaximumSize(QtCore.QSize(1500,900))
         self.resize(600,800)
+        self.setGeometry(60,80,65,85)
+        pixmap=QPixmap('logo.jpeg')
+        label.setPixmap(pixmap)
+#         self.resize(pixmap.width(),pixmap.height())
  
         self.centralwidget = QWidget(self)
         
@@ -32,11 +47,11 @@ class qrForm(QMainWindow):
         self.verticalLayout.addWidget(self.qrTextEdit)
  
         self.genQrButton = QPushButton(self.centralwidget)
-        self.genQrButton.setText("Generate QRCode")
+        self.genQrButton.setText("New User")
         self.verticalLayout.addWidget(self.genQrButton)
  
         self.decodeQrButton = QPushButton(self.centralwidget)
-        self.decodeQrButton.setText("Read QRCode")
+        self.decodeQrButton.setText("Scan QR Code")
         self.verticalLayout.addWidget(self.decodeQrButton)
  
         self.decodeText = QLabel(self.centralwidget)
@@ -80,6 +95,7 @@ class qrForm(QMainWindow):
         self.qrCodeImage.setPixmap(QPixmap("test.png").scaled(429,429))
  
     def decQrButton(self):
+        fswebcam image.jpg
         fName = self.openFileNameDialog()
         if (fName == None):
             return
@@ -88,8 +104,16 @@ class qrForm(QMainWindow):
         self.decodeText.setText(extractString[2:-1])
  
     def generateQR(self,str):
-        q = pyqrcode.create(str)
-        q.png("test.png",scale=13)
+        qr = QRCode(version = 4, box_size=5, border=0, error_correction=ERROR_CORRECT_L)
+        qr.add_data(str)
+        qr.make()
+        qr.make(fit=True)
+        im = qr.make_image(qrcode.image.pil.PilImage)
+        width = 128
+        height = 128
+        im = im.resize((width, height), Image.ANTIALIAS)
+        ext = ".png"
+        im.save(str+ ext)
  
 if __name__ == '__main__':
     sys._excepthook = sys.excepthook 
