@@ -1,4 +1,6 @@
 #Citation: https://www.codenov.com/1540126802d2d175d9162e3bc0fff233
+#This code is the first GUI Slide which talks about the various buttons available for the user upon launch.
+#Submission By:Smitha Bhaskar & Shanel Wu for Embedded Inerface Design ECEN 5783
 
 
 import pyqrcode
@@ -14,6 +16,9 @@ from PIL import Image
 import PIL
 import qrcode.image.pil
 from qrcode import *
+from pyzbar.pyzbar import decode
+import time 
+import os 
 
 
  
@@ -95,13 +100,15 @@ class qrForm(QMainWindow):
         self.qrCodeImage.setPixmap(QPixmap("test.png").scaled(429,429))
  
     def decQrButton(self):
-        fswebcam image.jpg
-        fName = self.openFileNameDialog()
-        if (fName == None):
-            return
-        qr = decode(Image.open(fName), symbols=[ZBarSymbol.QRCODE])
-        extractString = str(qr[0].data)
-        self.decodeText.setText(extractString[2:-1])
+        for i in range(5):
+            os.system('fswebcam -r 640x480 -S 3 --jpeg 50 --save /home/pi/EID_ECEN5783_Fall19/SuperProject/qrcode.jpg')
+            time.sleep(2)
+        decoded=decode(Image.open('/home/pi/EID_ECEN5783_Fall19/SuperProject/qrcode.jpg'))
+        #print(decoded)
+        
+        extractString = str(decoded[0].data)
+        self.decodeText.setText("Project NAme:"extractString[2:-1])
+        #self.decodeImage.setPixmap(QPixmap("/home/pi/EID_ECEN5783_Fall19/SuperProject/qrcode.jpg").scaled(429,429))
  
     def generateQR(self,str):
         qr = QRCode(version = 4, box_size=5, border=0, error_correction=ERROR_CORRECT_L)

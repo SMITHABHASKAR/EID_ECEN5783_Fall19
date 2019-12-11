@@ -1,7 +1,7 @@
 # pattern generation/editing classes and functions
 
 import numpy as np
-import cv2 as cv
+import PIL as cv
 
 _MODULES = 6
 _TPM = 220

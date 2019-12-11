@@ -1,7 +1,7 @@
 # PyQT widgets for handling weaving patterns: displaying, editing, logging user input/progress, handling transactions with other devices/AWS cloud
 
 import sys, os
-import cv2 as cv
+import PIL as cv
 
 from PyQt5 import QtCore, QtGui, QtWidgets, QtNetwork
 from PyQt5.QtCore import *

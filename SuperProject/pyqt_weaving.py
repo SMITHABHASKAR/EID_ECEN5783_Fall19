@@ -2,12 +2,12 @@
 
 # diagnostic/debugging settings
 terminalHidden = True
-realLoom = False # connect to a dummy TCP server if False
+realLoom = True # connect to a dummy TCP server if False
 _MODULES = 6
 # Details/state description: vacuum is on, threads are raised, weaver should have shuttles ready and does not have hands available except for simple button presses
 
 import numpy as np
-import cv2 as cv
+import PIL as cv
 import sys
 import json
 import qimage2ndarray as imgarr
