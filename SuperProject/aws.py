@@ -1,8 +1,10 @@
+#Python Code to automate the file upload process to AWS S3 bucket.
+
 import boto3
 from botocore.exceptions import NoCredentialsError
 
-ACCESS_KEY = 'AKIAIOK6T75MCFEYUTMA'
-SECRET_KEY = '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'
+ACCESS_KEY = '******************'
+SECRET_KEY = '**********************************'
 
 
 def upload_to_aws(local_file, bucket, s3_file):
