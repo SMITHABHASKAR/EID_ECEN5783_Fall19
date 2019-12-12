@@ -262,7 +262,7 @@ class saveDialog(QtWidgets.QDialog):
         return (fileName, result == QtWidgets.QDialog.Accepted)
 
 class patternDialog(QtWidgets.QDialog):
-    def __init__(self, existing=None, parent=None): # can be initialized with an existing Pattern object to edit, instead of creating new
+    def __init__(self, name='', existing=None, parent=None): # can be initialized with an existing Pattern object to edit, instead of creating new
         super().__init__(parent)
         layout = QVBoxLayout(self)
         self.resize(300, 400)
@@ -272,8 +272,6 @@ class patternDialog(QtWidgets.QDialog):
         # INPUT: pattern name
         self.nameLabel = QLabel("Pattern name:")
         self.patternName = QLineEdit(self)
-
-        self.patternName.textChanged.connect(self.validateSave)
 
         # INPUT/DISPLAY: pattern graphics view
         self.draft = patternDraft()
@@ -315,6 +313,9 @@ class patternDialog(QtWidgets.QDialog):
         self.save.setEnabled(False)
         self.buttons.accepted.connect(self.accept)
         self.buttons.rejected.connect(self.reject)
+        
+        self.patternName.textChanged.connect(self.validateSave)
+        self.patternName.setText(name)
         
         for widget in [self.nameLabel, self.patternName, self.draftView, self.widthLabel, self.widthControl, self.heightLabel, self.heightControl, self.buttons]:
             layout.addWidget(widget)
@@ -362,7 +363,7 @@ if __name__ == '__main__':
     #print ("pattern name:", patternName)
     #print ("new pattern data:", newPattern)
     #print ("result:", result)
-    patternName, editedPattern, result = patternDialog.editPattern(_WAFFLE)
+    patternName, editedPattern, result = patternDialog.editPattern("Waffle weave", _WAFFLE)
     print ("pattern name:", patternName)
     print ("new pattern data:", editedPattern)
     print ("result:", result)

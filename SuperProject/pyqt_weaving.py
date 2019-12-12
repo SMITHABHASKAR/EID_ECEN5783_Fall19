@@ -2,12 +2,13 @@
 
 # diagnostic/debugging settings
 terminalHidden = True
-realLoom = False # connect to a dummy TCP server if False
+realLoom = True # connect to a dummy TCP server if False
 _MODULES = 6
 # Details/state description: vacuum is on, threads are raised, weaver should have shuttles ready and does not have hands available except for simple button presses
 
 import numpy as np
 import PIL as cv
+from PIL import Image
 import sys
 import json
 import qimage2ndarray as imgarr
@@ -35,7 +36,7 @@ from Loom import Loom
 #_ALLUP = [[1, 1, 1, 1]]
 
 #_patternOptions = [Pattern("Tabby",_TABBY), Pattern("Twill",_TWILL), Pattern("Doubleweave", _DOUBLE), Pattern("Waffle",_WAFFLE), Pattern("All Up x 4", _ALLUP)]
-_patternOptions = [Pattern("All Up x 4", _ALLUP)]
+_patternOptions = []#Pattern("All Up x 4", _ALLUP)]
 
 # yarns listed as [ SHORTCODE, HEX_COLOR ]
 yarn = [] # if yarn list is blank, fill with default yarn ['A', '0xFFFFFF'] (yarn A, white color)
@@ -99,8 +100,17 @@ class Ui_Form(QtWidgets.QMainWindow):
         self.selectPattern.addItem("Select pattern")
         self.selectPattern.currentIndexChanged.connect(Form.updatePatternSelected)
 
+        self.editPattern = QtWidgets.QPushButton(Form)
+        self.editPattern.setGeometry(QtCore.QRect(9, 268, 101, 30))
+        self.editPattern.setEnabled(False)
+        self.editPattern.clicked.connect(Form.editPattern)
+        
+        self.createPattern = QtWidgets.QPushButton(Form)
+        self.createPattern.setGeometry(QtCore.QRect(110, 268, 101, 30))
+        self.createPattern.clicked.connect(Form.createPattern)
+
         self.openFile = QtWidgets.QPushButton(Form)
-        self.openFile.setGeometry(QtCore.QRect(9, 268, 202, 30))
+        self.openFile.setGeometry(QtCore.QRect(620, 30, 150, 30))
         self.openFile.clicked.connect(Form.loadWeaveFile)
         
         # buttons available after connection established
@@ -112,27 +122,27 @@ class Ui_Form(QtWidgets.QMainWindow):
             self.vacuum.setVisible(False)
 
         self.start = QtWidgets.QPushButton(Form)
-        self.start.setGeometry(QtCore.QRect(230, 10, 100, 40))
+        self.start.setGeometry(QtCore.QRect(300, 280, 200, 40))
         self.start.setObjectName("startButton")
         self.start.clicked.connect(Form.updateLoomState)
 
         self.stop = QtWidgets.QPushButton(Form)
-        self.stop.setGeometry(QtCore.QRect(340, 10, 100, 40))
+        self.stop.setGeometry(QtCore.QRect(510, 280, 100, 40))
         self.stop.setObjectName("stopButton")
         self.stop.setVisible(False) # hidden until paused = true
         self.stop.clicked.connect(Form.stopLoom)
 
         # advance pedal
         self.advance = QtWidgets.QPushButton(Form)
-        self.advance.setGeometry(QtCore.QRect(440, 280, 60, 60))
+        self.advance.setGeometry(QtCore.QRect(440, 330, 60, 60))
 
         # reverse pedal
         self.reverse = QtWidgets.QPushButton(Form)
-        self.reverse.setGeometry(QtCore.QRect(300, 280, 60, 60))
+        self.reverse.setGeometry(QtCore.QRect(300, 330, 60, 60))
 
         # refresh pedal
         self.refresh = QtWidgets.QPushButton(Form)
-        self.refresh.setGeometry(QtCore.QRect(370, 280, 60, 60))
+        self.refresh.setGeometry(QtCore.QRect(370, 330, 60, 60))
 
         self.pedals = [self.advance, self.reverse, self.refresh]
         self.activeFunctions = [self.vacuum, self.start, self.stop] + self.pedals
@@ -168,24 +178,34 @@ class Ui_Form(QtWidgets.QMainWindow):
         self.retranslateUi(Form)
 
     def loadFileView(self):
-        self.draftView.setVisible(False)
-        self.projectView.setGeometry(QtCore.QRect(10, 60, 770, 210))
+        for widget in [self.draftView, self.selectPattern, self.editPattern, self.createPattern]:
+            widget.setVisible(False)
+        self.projectView.setGeometry(QtCore.QRect(10, 60, 760, 210))
+        self.openFile.setText("Select Patterns")
+        self.openFile.clicked.disconnect()
+        self.openFile.clicked.connect(self.generateFileView)
 
     def generateFileView(self):
-        self.draftView.setVisible(True)
+        for widget in [self.draftView, self.selectPattern, self.editPattern, self.createPattern]:
+            widget.setVisible(True)
         self.projectView.setGeometry(QtCore.QRect(220, 60, 550, 210))
+        self.openFile.setText("Load File")
+        self.openFile.clicked.disconnect()
+        self.openFile.clicked.connect(Form.loadWeaveFile)
 
     def retranslateUi(self, Form):
         _translate = QtCore.QCoreApplication.translate
         Form.setWindowTitle(_translate("Form", "Loom Connection"))
         self.connectButton.setText(_translate("Form", "Connect"))
         self.vacuum.setText(_translate("Form", "Vacuum Toggle"))
+        self.editPattern.setText(_translate("Form", "Edit"))
+        self.createPattern.setText(_translate("Form", "New"))
         self.start.setText(_translate("Form", "Start"))
         self.stop.setText(_translate("Form", "Stop"))
         self.advance.setText(_translate("Form", "Next"))
         self.reverse.setText(_translate("Form", "Back"))
         self.refresh.setText(_translate("Form", "Again"))
-        self.openFile.setText(_translate("Form", "Load file"))
+        self.openFile.setText(_translate("Form", "Load File"))
 
 class Form(Ui_Form):
     def __init__ (self, parent = None):
@@ -194,6 +214,7 @@ class Form(Ui_Form):
         self.ui.setupUi(self)
 
         self.patternSelected = None
+        self.patternName = ''
         self.lineNumber = -1
         self.patternRow = 0
         self.rowBuffer = None # row buffer, holds data for current row in case of refresh
@@ -253,7 +274,7 @@ class Form(Ui_Form):
             pixmapItem.setScale(2)
             self.ui.project.setDesign(self.weaveFile)
             # load BMP into cv for a numpy array
-            self.weaveImg = cv.imread(file[0], cv.IMREAD_GRAYSCALE)
+            self.weaveImg = cv.Image.open(file[0])#, cv.IMREAD_GRAYSCALE)
             if (self.designMode == "generate"):
                 self.switchDesignMode()
         else: print ("user cancelled")
@@ -261,14 +282,48 @@ class Form(Ui_Form):
     def updatePatternSelected(self, pattern):
         selection = self.patternList[pattern-1]
         if (isinstance(selection, dict)):
-            self.patternSelected = selection['pattern']#_patternOptions[pattern-1][1]
+            self.patternSelected = selection['pattern']#_patternOptions[pattern-1][1]        
+            self.patternName = selection['name']
         else: # is Pattern object
             self.patternSelected = selection.data
+            self.patternName = selection.name
         
+        self.ui.editPattern.setEnabled(True)
         self.ui.draftView.setScene(self.ui.draft)
         self.ui.draft.drawDraft(self.patternSelected, True)
         if (self.designMode == "load"):
             self.switchDesignMode()
+            
+    def getPatternIndex(self, patternName):
+        for i in range(0, len(self.patternList)):
+            pattern = self.patternList[i]
+            if (isinstance(pattern, dict)):
+                if (pattern['name'] == patternName):
+                    return i
+            else:
+                if (pattern.name == patternName):
+                    return i
+                             
+    def editPattern(self):
+        # edit self.patternSelected
+        patternName, patternData, result = patternDialog.editPattern(self.patternName, self.patternSelected)
+        if (result):
+            i = self.getPatternIndex(self.patternName)
+            if (isinstance(self.patternList[i], dict)):
+                self.patternList[i]['name'] = patternName
+                self.patternList[i]['pattern'] = patternData
+            else:
+                self.patternList[i].name = patternName
+                self.patternList[i].data = patternData
+            self.ui.selectPattern.setItemText(i+1, patternName)
+            self.updatePatternSelected(i+1)
+            
+    def createPattern(self):
+        name, data, result = patternDialog.editPattern(None)
+        if (result):
+            newPattern = Pattern(name, data.tolist())
+            self.patternList.append(newPattern)
+            self.ui.selectPattern.addItem(name)
 
     def connectLoom(self):
         # whether or not the loom is "real" -- 
