@@ -2,7 +2,7 @@
 
 # diagnostic/debugging settings
 terminalHidden = True
-realLoom = True # connect to a dummy TCP server if False
+realLoom = False # connect to a dummy TCP server if False
 _MODULES = 6
 # Details/state description: vacuum is on, threads are raised, weaver should have shuttles ready and does not have hands available except for simple button presses
 
@@ -32,7 +32,7 @@ from Loom import Loom
 #_TWILL = [[0, 0, 0, 1], [0, 0, 1, 0], [0, 1, 0, 0], [1, 0, 0, 0]]
 #_DOUBLE = [[0, 0, 0, 1], [0, 1, 1, 1], [0, 1, 0, 0], [1, 1, 0, 1]]
 #_WAFFLE = [[0, 0, 0, 1, 0, 1, 0, 0], [0, 0, 1, 0, 1, 0, 1, 0], [0, 1, 0, 1, 1, 1, 0, 1], [1, 0, 1, 1, 1, 1, 1, 0], [0, 1, 1, 1, 1, 1, 0, 1], [1, 0, 1, 1, 1, 0, 1, 0], [0, 1, 0, 1, 0, 1, 0, 0], [0, 0, 1, 0, 1, 0, 0, 0]]
-_ALLUP = [[1, 1, 1, 1]]
+#_ALLUP = [[1, 1, 1, 1]]
 
 #_patternOptions = [Pattern("Tabby",_TABBY), Pattern("Twill",_TWILL), Pattern("Doubleweave", _DOUBLE), Pattern("Waffle",_WAFFLE), Pattern("All Up x 4", _ALLUP)]
 _patternOptions = [Pattern("All Up x 4", _ALLUP)]
@@ -108,6 +108,8 @@ class Ui_Form(QtWidgets.QMainWindow):
         self.vacuum.setGeometry(QtCore.QRect(120, 10, 100, 40))
         self.vacuum.setObjectName("vacuumToggle")
         self.vacuum.clicked.connect(Form.vacuum)
+        if (realLoom):
+            self.vacuum.setVisible(False)
 
         self.start = QtWidgets.QPushButton(Form)
         self.start.setGeometry(QtCore.QRect(230, 10, 100, 40))
@@ -360,7 +362,7 @@ class Form(Ui_Form):
                 if (self.rowBuffer is None):
                     self.advance()
                 else:
-                    self.sendToLoom(False) # weaver can step on the pedal, "next" button not necessary
+                    self.refresh() # weaver can step on the pedal, "next" button not necessary
           #self.sendToLoom() # need to wait until vacuum on confirm
         elif (self.loomState == "started"): # transition from started to paused
             self.loomState = "paused"
